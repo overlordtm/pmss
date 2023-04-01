@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package protoapi;
+
+option go_package = "github.com/overlordtm/pmss";
+
+message HashQuery {
+    string md5 = 1;
+    string sha1 = 2;
+    string sha256 = 3;
+    string sha512 = 4;
+}
