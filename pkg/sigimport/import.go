@@ -41,12 +41,13 @@ func Import(dbPath string, filename string) error {
 	defer f.Close()
 
 	// build bulk insert sql
+	bulkSize := 100
 	sqlStmt := strings.Builder{}
 	sqlStmt.WriteString("INSERT INTO signatures (md5, sha1, sha256, imphash, ssdeep, tlsh, signature, filename, mimetype) VALUES ")
 
-	for i := 0; i < 100; i++ {
+	for i := 0; i < bulkSize; i++ {
 		sqlStmt.WriteString("(?, ?, ?, ?, ?, ?, ?, ?, ?)")
-		if i < 99 {
+		if i < bulkSize-1 {
 			sqlStmt.WriteString(", ")
 		}
 	}
@@ -68,20 +69,20 @@ func Import(dbPath string, filename string) error {
 	csvReader.Comma = ','
 	csvReader.Comment = '#'
 
-	params := make([]interface{}, 0, 900)
+	params := make([]interface{}, 0, 9*bulkSize)
 
 	records, err := csvReader.ReadAll()
 	if err != nil {
 		return fmt.Errorf("error while reading csv: %v", err)
 	}
 
-	for i := 0; i < len(records); i = i + 100 {
-		for j := 0; j < 100 && i+j < len(records); j++ {
+	for i := 0; i < len(records); i = i + bulkSize {
+		for j := 0; j < bulkSize && i+j < len(records); j++ {
 			record := records[i+j]
 			params = append(params, record[3], record[2], record[1], record[11], record[12], record[13], record[8], record[5], record[7])
 		}
 
-		if len(params) == 900 {
+		if len(params) == 9*bulkSize {
 			if _, err := bulkInsertStmt.Exec(params...); err != nil {
 				return fmt.Errorf("error while inserting bulk: %v", err)
 			}

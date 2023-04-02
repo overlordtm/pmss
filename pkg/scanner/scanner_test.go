@@ -37,7 +37,7 @@ func TestScan(t *testing.T) {
 
 func TestScanFile(t *testing.T) {
 	projRoot := os.Getenv("PMSS_PROJ_ROOT")
-	dbPath := fmt.Sprintf("%s/test/test.db", projRoot)
+	dbPath := fmt.Sprintf("%s/test/0ad.db", projRoot)
 	fmt.Printf("dbPath: '%s'\n", dbPath)
 
 	db := sigdb.New(dbPath)
@@ -50,15 +50,16 @@ func TestScanFile(t *testing.T) {
 
 	checkers := []interface{}{c}
 
-	pth := fmt.Sprintf("%s/test/data/179b98e2cb16a094755f853ae892b47948a8b6a83e7ca050d520e113ff180b2f.exe", projRoot)
+	testFile := "0ad.appdata.xml"
+	testFilePath := fmt.Sprintf("%s/test/data/%s", projRoot, testFile)
 
-	r, err := scanFile(db, pth, checkers)
+	r, err := scanFile(db, testFilePath, checkers)
 
 	if err != nil {
 		t.Error(err)
 	}
 
-	if r.Path != pth {
+	if r.Path != testFilePath {
 		t.Error("wrong path")
 	}
 

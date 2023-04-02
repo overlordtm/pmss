@@ -12,20 +12,20 @@ import (
 
 func TestSigChecker_CheckHash(t *testing.T) {
 	projRoot := os.Getenv("PMSS_PROJ_ROOT")
-	dbPath := fmt.Sprintf("%s/test/test.db", projRoot)
+	dbPath := fmt.Sprintf("%s/test/0ad.db", projRoot)
 	db := sigdb.New(dbPath)
-
-	defer db.Close()
 
 	err := db.Init()
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer db.Close()
 
 	checker := sigchecker.New(db)
 
-	exePath := fmt.Sprintf("%s/test/data/179b98e2cb16a094755f853ae892b47948a8b6a83e7ca050d520e113ff180b2f.exe", projRoot)
-	f, err := os.OpenFile(exePath, os.O_RDONLY, 0)
+	testFile := "0ad.appdata.xml"
+	testFilePath := fmt.Sprintf("%s/test/data/%s", projRoot, testFile)
+	f, err := os.OpenFile(testFilePath, os.O_RDONLY, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,10 +37,12 @@ func TestSigChecker_CheckHash(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	fmt.Printf("hash: %s\n", h.MD5)
 	r, err := checker.CheckHash(h)
 	if err != nil {
 		t.Fatal(err)
 	}
+	fmt.Printf("r: %+v\n", r)
 
 	if r.Signature != "Formbook" {
 		t.Fatal("wrong signature")

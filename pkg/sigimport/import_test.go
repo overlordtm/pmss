@@ -8,7 +8,7 @@ import (
 
 func TestImport(t *testing.T) {
 	projRoot := os.Getenv("PMSS_PROJ_ROOT")
-	dbPath := fmt.Sprintf("%s/test/test.db", projRoot)
+	dbPath := fmt.Sprintf("%s/test/test_sig.db", projRoot)
 	fmt.Printf("dbPath: '%s'\n", dbPath)
 	defer os.Remove(dbPath)
 
