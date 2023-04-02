@@ -1,7 +1,6 @@
 package debscraper
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -27,17 +26,5 @@ func TestXxx(t *testing.T) {
 
 	if len(files) == 0 {
 		t.Error("no files found")
-	}
-
-	fmt.Println(files[0])
-}
-
-func TestScrape(t *testing.T) {
-	s := setup()
-	hashItemCh := make(chan HashItem)
-	go s.Scrape(10, hashItemCh)
-
-	for item := range hashItemCh {
-		fmt.Println(item)
 	}
 }

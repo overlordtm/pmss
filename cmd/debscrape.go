@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/jszwec/csvutil"
 	"github.com/overlordtm/pmss/pkg/debscraper"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -59,13 +60,15 @@ to quickly create a Cobra application.`,
 			return err
 		}
 
-		cvsWriter := csv.NewWriter(outFile)
-		defer cvsWriter.Flush()
+		csvWriter := csv.NewWriter(outFile)
+		defer csvWriter.Flush()
+		encoder := csvutil.NewEncoder(csvWriter)
 
-		cvsWriter.Write([]string{"filename", "package", "version", "architecture", "md5", "sha1", "sha256", "size", "mode", "owner", "group"})
+		// cvsWriter.Write([]string{"filename", "package", "version", "architecture", "md5", "sha1", "sha256", "size", "mode", "owner", "group"})
 
 		for result := range results {
-			err = cvsWriter.Write([]string{result.Filename, result.Package, result.Version, result.Architecture, result.MD5, result.SHA1, result.SHA256, fmt.Sprintf("%d", result.Size), fmt.Sprintf("%o", result.Mode), result.Owner, result.Group})
+			err = encoder.Encode(result)
+			// err = cvsWriter.Write([]string{result.Filename, result.Package, result.Version, result.Architecture, result.MD5, result.SHA1, result.SHA256, fmt.Sprintf("%d", result.Size), fmt.Sprintf("%o", result.Mode), result.Owner, result.Group})
 			if err != nil {
 				return err
 			}

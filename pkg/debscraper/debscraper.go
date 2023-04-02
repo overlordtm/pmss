@@ -5,7 +5,6 @@ import (
 	"compress/gzip"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 	"sync"
 
@@ -18,26 +17,12 @@ type DebScraper struct {
 	httpClient *http.Client
 }
 
-type PackageInfo struct {
+type packageInfo struct {
 	Name         string
 	Version      string
 	Architecture string
 	Filename     string
 	MD5Sum       string
-	SHA256       string
-}
-
-type HashItem struct {
-	Package      string
-	Version      string
-	Architecture string
-	Filename     string
-	Size         int64
-	Mode         os.FileMode
-	Owner        string
-	Group        string
-	MD5          string
-	SHA1         string
 	SHA256       string
 }
 
@@ -97,7 +82,7 @@ func New(opts ...option) *DebScraper {
 	}
 }
 
-func (s *DebScraper) listPackages() ([]PackageInfo, error) {
+func (s *DebScraper) listPackages() ([]packageInfo, error) {
 	res, err := s.httpClient.Get(fmt.Sprintf("%s/dists/%s/%s/binary-%s/Packages.gz", s.opts.MirrorUrl, s.opts.Distro, s.opts.Component, s.opts.Arch))
 	if err != nil {
 		return nil, fmt.Errorf("error while fetching Packages.gz: %w", err)
@@ -118,9 +103,9 @@ func (s *DebScraper) listPackages() ([]PackageInfo, error) {
 
 	r := bufio.NewScanner(gzipReader)
 
-	pkgs := make([]PackageInfo, 0)
+	pkgs := make([]packageInfo, 0)
 
-	pkg := PackageInfo{}
+	pkg := packageInfo{}
 
 	for r.Scan() {
 		line := r.Text()
@@ -138,14 +123,14 @@ func (s *DebScraper) listPackages() ([]PackageInfo, error) {
 			pkg.SHA256 = strings.TrimPrefix(line, "SHA256: ")
 		} else if line == "" {
 			pkgs = append(pkgs, pkg)
-			pkg = PackageInfo{}
+			pkg = packageInfo{}
 		}
 	}
 
 	return pkgs, r.Err()
 }
 
-func (s *DebScraper) fetchPackage(pkgInfo PackageInfo) ([]HashItem, error) {
+func (s *DebScraper) fetchPackage(pkgInfo packageInfo) ([]HashItem, error) {
 
 	options := &deb.PackageOptions{
 		Hash:                 deb.HASH_SHA1,
@@ -192,7 +177,7 @@ func (s *DebScraper) Scrape(concurrency int, hashItemCh chan HashItem) error {
 		return fmt.Errorf("error while listing packages: %w", err)
 	}
 
-	workCh := make(chan PackageInfo, len(pkgs))
+	workCh := make(chan packageInfo, len(pkgs))
 
 	go func() {
 		for _, pkg := range pkgs {
