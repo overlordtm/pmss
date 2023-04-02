@@ -20,8 +20,7 @@ jobs:
           mkdir -p $PMSS_PROJ_ROOT/test/data
       
       - name: Install dependencies
-        working-directory: ${{github.workspace}}
-        run: go mod download      
+        run: go get ./...
 
       - name: Run tests
         working-directory: ${{github.workspace}}
