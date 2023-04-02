@@ -21,7 +21,8 @@ jobs:
           mkdir -p $PMSS_PROJ_ROOT/test/data
       
       - name: Install dependencies
-        run: go get ./...
+        working-directory: ${{github.workspace}}/pmss
+        run: go get -v -t -d .
 
       - name: Run tests
         working-directory: ${{github.workspace}}
