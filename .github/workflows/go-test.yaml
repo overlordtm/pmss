@@ -6,7 +6,7 @@ jobs:
   test:
     env:
       PMSS_PROJ_ROOT: ${{github.workspace}}
-      GOPATH: ${{github.home}}/go
+      GOPATH: /home/runner/go
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
