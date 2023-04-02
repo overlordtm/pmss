@@ -1,6 +1,7 @@
 package sigchecker_test
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -10,7 +11,9 @@ import (
 )
 
 func TestSigChecker_CheckHash(t *testing.T) {
-	db := sigdb.New("/home/az/ws.az/pmss/test.db")
+	projRoot := os.Getenv("PMSS_PROJ_ROOT")
+	dbPath := fmt.Sprintf("%s/test/test.db", projRoot)
+	db := sigdb.New(dbPath)
 
 	defer db.Close()
 
@@ -21,7 +24,8 @@ func TestSigChecker_CheckHash(t *testing.T) {
 
 	checker := sigchecker.New(db)
 
-	f, err := os.OpenFile("/home/az/ws.az/pmss/testdata/179b98e2cb16a094755f853ae892b47948a8b6a83e7ca050d520e113ff180b2f.exe", os.O_RDONLY, 0)
+	exePath := fmt.Sprintf("%s/test/data/179b98e2cb16a094755f853ae892b47948a8b6a83e7ca050d520e113ff180b2f.exe", projRoot)
+	f, err := os.OpenFile(exePath, os.O_RDONLY, 0)
 	if err != nil {
 		t.Fatal(err)
 	}

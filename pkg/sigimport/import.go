@@ -19,7 +19,16 @@ func Import(dbPath string, filename string) error {
 	defer db.Close()
 
 	// ensure table
-	_, err = db.Exec("CREATE TABLE IF NOT EXISTS signatures (md5 TEXT, sha1 TEXT, sha256 TEXT, imphash TEXT, ssdeep TEXT, tlsh TEXT, signature TEXT, filename TEXT, mimetype TEXT)")
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS signatures (
+		md5 TEXT,
+		sha1 TEXT,
+		sha256 TEXT,
+		imphash TEXT,
+		ssdeep TEXT,
+		tlsh TEXT,
+		signature TEXT,
+		filename TEXT,
+		mimetype TEXT)`)
 	if err != nil {
 		return fmt.Errorf("error while creating table: %v", err)
 	}

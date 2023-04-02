@@ -25,7 +25,19 @@ func (s *SqlSigDb) Init() error {
 		return err
 	}
 
-	_, err = db.Exec("CREATE TABLE IF NOT EXISTS signatures (md5 TEXT, sha1 TEXT, sha256 TEXT, imphash TEXT, ssdeep TEXT, tlsh TEXT, signature TEXT, filename TEXT, mimetype TEXT)")
+	_, err = db.Exec(`
+	CREATE TABLE IF NOT EXISTS signatures (
+		md5 TEXT,
+		sha1 TEXT,
+		sha256 TEXT,
+		imphash TEXT,
+		ssdeep TEXT,
+		tlsh TEXT,
+		signature TEXT,
+		filename TEXT,
+		mimetype TEXT
+	)
+		`)
 	if err != nil {
 		return fmt.Errorf("error while creating table: %v", err)
 	}
@@ -36,7 +48,9 @@ func (s *SqlSigDb) Init() error {
 }
 
 func (s *SqlSigDb) SaveItem(item Item) error {
-	_, err := s.db.Exec("INSERT INTO signatures (md5, sha1, sha256, imphash, ssdeep, tlsh, signature, filename, mimetype) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", item.MD5, item.SHA1, item.SHA256, item.ImpHash, item.SSDeep, item.TLSH, item.Signature, item.Filename, item.MimeType)
+	_, err := s.db.Exec(`INSERT INTO signatures (md5, sha1, sha256, imphash, ssdeep, tlsh, signature, filename, mimetype)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		item.MD5, item.SHA1, item.SHA256, item.ImpHash, item.SSDeep, item.TLSH, item.Signature, item.Filename, item.MimeType)
 	if err != nil {
 		return fmt.Errorf("error while inserting item: %v", err)
 	}

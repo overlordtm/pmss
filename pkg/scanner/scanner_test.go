@@ -1,6 +1,8 @@
 package scanner
 
 import (
+	"fmt"
+	"os"
 	"testing"
 
 	"github.com/overlordtm/pmss/pkg/checker/sigchecker"
@@ -20,7 +22,7 @@ func TestScan(t *testing.T) {
 
 	// scanner := New(db, checkers)
 
-	// results, err := scanner.Scan("/home/az/ws.az/pmss/testdata")
+	// results, err := scanner.Scan("/home/az/ws.az/pmss/test/data")
 	// if err != nil {
 	// 	t.Error(err)
 	// }
@@ -34,8 +36,11 @@ func TestScan(t *testing.T) {
 }
 
 func TestScanFile(t *testing.T) {
+	projRoot := os.Getenv("PMSS_PROJ_ROOT")
+	dbPath := fmt.Sprintf("%s/test/test.db", projRoot)
+	fmt.Printf("dbPath: '%s'\n", dbPath)
 
-	db := sigdb.New("/home/az/ws.az/pmss/test.db")
+	db := sigdb.New(dbPath)
 	err := db.Init()
 	if err != nil {
 		t.Error(err)
@@ -45,7 +50,7 @@ func TestScanFile(t *testing.T) {
 
 	checkers := []interface{}{c}
 
-	pth := "/home/az/ws.az/pmss/testdata/179b98e2cb16a094755f853ae892b47948a8b6a83e7ca050d520e113ff180b2f.exe"
+	pth := fmt.Sprintf("%s/test/data/179b98e2cb16a094755f853ae892b47948a8b6a83e7ca050d520e113ff180b2f.exe", projRoot)
 
 	r, err := scanFile(db, pth, checkers)
 
