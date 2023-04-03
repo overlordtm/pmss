@@ -3,18 +3,32 @@ package debscraper
 import (
 	"bufio"
 	"compress/gzip"
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/isbm/go-deb"
 	"github.com/sirupsen/logrus"
 )
 
+type dummyLogger struct{}
+
+func (d *dummyLogger) Printf(format string, args ...interface{}) {}
+func (d *dummyLogger) Println(args ...interface{})               {}
+func (d *dummyLogger) Print(args ...interface{})                 {}
+
+func init() {
+	deb.SetLogger(&dummyLogger{})
+}
+
 type DebScraper struct {
 	opts       options
 	httpClient *http.Client
+	logger     *logrus.Logger
 }
 
 type packageInfo struct {
@@ -26,50 +40,14 @@ type packageInfo struct {
 	SHA256       string
 }
 
-type options struct {
-	// Mirror URL
-	MirrorUrl string
-	// Distribution name
-	Distro string
-	// Component name
-	Component string
-	// Architecture
-	Arch string
-}
-
-type option func(*options)
-
-func WithMirrorUrl(mirrorUrl string) func(*options) {
-	return func(o *options) {
-		o.MirrorUrl = mirrorUrl
-	}
-}
-
-func WithDistro(distro string) func(*options) {
-	return func(o *options) {
-		o.Distro = distro
-	}
-}
-
-func WithComponent(component string) func(*options) {
-	return func(o *options) {
-		o.Component = component
-	}
-}
-
-func WithArch(arch string) func(*options) {
-	return func(o *options) {
-		o.Arch = arch
-	}
-}
-
-func New(opts ...option) *DebScraper {
+func New(opts ...Option) *DebScraper {
 
 	options := options{
-		MirrorUrl: "http://ftp.debian.org/debian",
-		Distro:    "buster",
-		Component: "main",
-		Arch:      "amd64",
+		mirrorUrl: RandomMirror(Mirrors...),
+		distro:    "buster",
+		component: "main",
+		arch:      "amd64",
+		logger:    logrus.StandardLogger(),
 	}
 
 	for _, opt := range opts {
@@ -77,13 +55,25 @@ func New(opts ...option) *DebScraper {
 	}
 
 	return &DebScraper{
-		opts:       options,
-		httpClient: &http.Client{},
+		opts: options,
+		httpClient: &http.Client{
+			Timeout: 5 * time.Second,
+		},
+		logger: options.logger,
 	}
 }
 
-func (s *DebScraper) listPackages() ([]packageInfo, error) {
-	res, err := s.httpClient.Get(fmt.Sprintf("%s/dists/%s/%s/binary-%s/Packages.gz", s.opts.MirrorUrl, s.opts.Distro, s.opts.Component, s.opts.Arch))
+func (s *DebScraper) listPackages(ctx context.Context) ([]packageInfo, error) {
+
+	mirrorUrl := s.opts.mirrorUrl()
+
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/dists/%s/%s/binary-%s/Packages.gz", mirrorUrl, s.opts.distro, s.opts.component, s.opts.arch), nil)
+
+	if err != nil {
+		return nil, fmt.Errorf("error while creating request: %w", err)
+	}
+
+	res, err := s.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error while fetching Packages.gz: %w", err)
 	}
@@ -107,8 +97,11 @@ func (s *DebScraper) listPackages() ([]packageInfo, error) {
 
 	pkg := packageInfo{}
 
+	lines := make([]string, 0)
+
 	for r.Scan() {
 		line := r.Text()
+		lines = append(lines, line)
 		if strings.HasPrefix(line, "Package: ") {
 			pkg.Name = strings.TrimPrefix(line, "Package: ")
 		} else if strings.HasPrefix(line, "Version: ") {
@@ -122,6 +115,14 @@ func (s *DebScraper) listPackages() ([]packageInfo, error) {
 		} else if strings.HasPrefix(line, "SHA256: ") {
 			pkg.SHA256 = strings.TrimPrefix(line, "SHA256: ")
 		} else if line == "" {
+
+			if pkg.Name == "" || pkg.Version == "" || pkg.Architecture == "" || pkg.Filename == "" || (pkg.MD5Sum == "" && pkg.SHA256 == "") {
+				for i := len(lines) - 30; i < len(lines); i++ {
+					fmt.Println(lines[i])
+				}
+				return nil, errors.New("invalid package info")
+			}
+
 			pkgs = append(pkgs, pkg)
 			pkg = packageInfo{}
 		}
@@ -130,15 +131,23 @@ func (s *DebScraper) listPackages() ([]packageInfo, error) {
 	return pkgs, r.Err()
 }
 
-func (s *DebScraper) fetchPackage(pkgInfo packageInfo) ([]HashItem, error) {
+func (s *DebScraper) fetchPackage(ctx context.Context, pkgInfo packageInfo) ([]HashItem, error) {
+	mirrorUrl := s.opts.mirrorUrl()
+
+	pkgUri := fmt.Sprintf("%s/%s", mirrorUrl, pkgInfo.Filename)
+
+	s.logger.WithFields(logrus.Fields{
+		"package": pkgInfo.Name,
+		"version": pkgInfo.Version,
+		"arch":    pkgInfo.Architecture,
+		"pkgUri":  pkgUri,
+	}).Info("fetching package")
 
 	options := &deb.PackageOptions{
 		Hash:                 deb.HASH_SHA1,
 		RecalculateChecksums: true,
 		MetaOnly:             false,
 	}
-
-	pkgUri := fmt.Sprintf("%s/%s", s.opts.MirrorUrl, pkgInfo.Filename)
 
 	pkg, err := deb.OpenPackageFile(pkgUri, options)
 
@@ -171,11 +180,13 @@ func (s *DebScraper) fetchPackage(pkgInfo packageInfo) ([]HashItem, error) {
 	return res, nil
 }
 
-func (s *DebScraper) Scrape(concurrency int, hashItemCh chan HashItem) error {
-	pkgs, err := s.listPackages()
+func (s *DebScraper) Scrape(ctx context.Context, concurrency int, hashItemCh chan HashItem, progress ProgressDelegate) (err error) {
+	pkgs, err := s.listPackages(ctx)
 	if err != nil {
 		return fmt.Errorf("error while listing packages: %w", err)
 	}
+
+	progress.Start(int64(len(pkgs)))
 
 	workCh := make(chan packageInfo, len(pkgs))
 
@@ -191,14 +202,27 @@ func (s *DebScraper) Scrape(concurrency int, hashItemCh chan HashItem) error {
 	for i := 0; i < concurrency; i++ {
 		go func() {
 			defer wg.Done()
-			for pkg := range workCh {
-				hashItems, err := s.fetchPackage(pkg)
-				if err != nil {
-					logrus.WithError(err).WithField("package", pkg.Name).Error("error while fetching package")
-				} else {
-					for _, item := range hashItems {
-						hashItemCh <- item
+
+			for {
+				select {
+				case <-ctx.Done():
+					err = errors.Join(err, ctx.Err())
+					return
+				case pkg, ok := <-workCh:
+					if !ok {
+						err = errors.Join(err, fmt.Errorf("work channel closed"))
+						return
 					}
+					hashItems, err := s.retryFetchPackage(ctx, 5, pkg)
+
+					if err != nil {
+						s.logger.WithError(err).WithField("package", pkg.Name).Error("error while fetching package")
+					} else {
+						for _, item := range hashItems {
+							hashItemCh <- item
+						}
+					}
+					progress.Done(1)
 				}
 			}
 		}()
@@ -206,4 +230,27 @@ func (s *DebScraper) Scrape(concurrency int, hashItemCh chan HashItem) error {
 
 	wg.Wait()
 	return nil
+}
+
+func (s *DebScraper) retryFetchPackage(ctx context.Context, attempts int, pkg packageInfo) (items []HashItem, err error) {
+	for i := 0; i < attempts; i++ {
+		items, err := func() ([]HashItem, error) {
+			defer func() {
+				if r := recover(); r != nil {
+					err = fmt.Errorf("panic: %v", r)
+				}
+			}()
+			return s.fetchPackage(ctx, pkg)
+		}()
+
+		if err == nil {
+			return items, nil
+		}
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+		}
+	}
+	return nil, fmt.Errorf("failed after %d attempts: %w", attempts, err)
 }

@@ -1,16 +1,21 @@
 package debscraper
 
 import (
+	"context"
 	"testing"
 )
 
 func setup() *DebScraper {
-	return New()
+	return New(
+		WithDistro("buster"),
+		WithComponent("main"),
+		WithArch("amd64"),
+	)
 }
 
-func TestXxx(t *testing.T) {
+func TestListPackages(t *testing.T) {
 	s := setup()
-	pkgs, err := s.listPackages()
+	pkgs, err := s.listPackages(context.Background())
 	if err != nil {
 		t.Error(err)
 	}
@@ -18,13 +23,57 @@ func TestXxx(t *testing.T) {
 	if len(pkgs) == 0 {
 		t.Error("no packages found")
 	}
+}
 
-	files, err := s.fetchPackage(pkgs[0])
-	if err != nil {
-		t.Error(err)
+func TestFetchPackage(t *testing.T) {
+
+	packages := []packageInfo{
+		{
+			Name:         "libbz2-1.0",
+			Version:      "1.0.6-9.2~deb10u1",
+			Architecture: "amd64",
+			Filename:     "pool/main/b/bzip2/libbz2-1.0_1.0.6-9.2~deb10u1_amd64.deb",
+		},
 	}
 
-	if len(files) == 0 {
-		t.Error("no files found")
+	s := setup()
+	for _, pkg := range packages {
+		files, err := s.fetchPackage(context.Background(), pkg)
+		if err != nil {
+			t.Error(err)
+		}
+
+		if len(files) == 0 {
+			t.Error("no files found")
+		}
+	}
+}
+
+func TestFetchPackage2(t *testing.T) {
+
+	packages := []packageInfo{
+		{
+			Name:         "libbz2-1.0",
+			Version:      "1.0.6-9.2~deb10u1",
+			Architecture: "amd64",
+			Filename:     "pool/main/b/bzip2/libbz2-1.0_1.0.6-9.2~deb10u1_amd64.deb",
+		},
+	}
+
+	s := New(
+		WithRoundRobinMirrors("http://ftp.si.debian.org/debian", "http://ftp.at.debian.org/debian"),
+		WithDistro("buster"),
+		WithComponent("main"),
+		WithArch("amd64"),
+	)
+	for _, pkg := range packages {
+		files, err := s.retryFetchPackage(context.Background(), 5, pkg)
+		if err != nil {
+			t.Error(err)
+		}
+
+		if len(files) == 0 {
+			t.Error("no files found")
+		}
 	}
 }

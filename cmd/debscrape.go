@@ -4,12 +4,14 @@ Copyright © 2023 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"context"
 	"encoding/csv"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
-	"github.com/jszwec/csvutil"
 	"github.com/overlordtm/pmss/pkg/debscraper"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -22,6 +24,8 @@ var (
 	distro         string
 	arch           string
 	component      string
+	logfile        string
+	progress       bool = true
 )
 
 // debscrapeCmd represents the debscrape command
@@ -41,14 +45,96 @@ to quickly create a Cobra application.`,
 	},
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 
-		logrus.SetOutput(os.Stderr)
+		opts := make([]debscraper.Option, 0)
 
-		scraper := debscraper.New(debscraper.WithMirrorUrl(url), debscraper.WithDistro(distro), debscraper.WithArch(arch), debscraper.WithComponent(component))
+		if logfile != "" {
+			logger := logrus.New()
+			logger.SetFormatter(&logrus.TextFormatter{
+				DisableColors: true,
+				FullTimestamp: true,
+			})
+			logger.SetLevel(logrus.DebugLevel)
+
+			logFileFd, err := os.OpenFile(logfile, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0644)
+			if err != nil {
+				return fmt.Errorf("error while opening log file: %w", err)
+			}
+			defer logFileFd.Close()
+
+			logger.SetOutput(logFileFd)
+
+			// flush logfile every 5 seconds
+			// ticker := time.NewTicker(5 * time.Second)
+			// defer ticker.Stop()
+			// go func() {
+			// 	for {
+			// 		select {
+			// 		case <-ticker.C:
+			// 			logFileFd.Sync()
+			// 		}
+			// 	}
+			// }()
+
+			opts = append(opts, debscraper.WithLogger(logger))
+
+		} else {
+			logrus.SetOutput(os.Stdout)
+		}
+
+		if url != "" {
+			opts = append(opts, debscraper.WithMirrorUrl(url))
+		}
+
+		if distro != "" {
+			opts = append(opts, debscraper.WithDistro(distro))
+		}
+
+		if arch != "" {
+			opts = append(opts, debscraper.WithArch(arch))
+		}
+
+		if component != "" {
+			opts = append(opts, debscraper.WithComponent(component))
+		}
+
+		scraper := debscraper.New(opts...)
 
 		results := make(chan debscraper.HashItem, 1024)
 
+		// // print some runtime stats
+		// go func() {
+		// 	ticker := time.NewTicker(5 * time.Second)
+		// 	for {
+		// 		select {
+		// 		case <-ticker.C:
+		// 			memStats := runtime.MemStats{}
+		// 			runtime.ReadMemStats(&memStats)
+		// 			logrus.Infof("gorutines: %d, mem: %s, mallocs: %d", runtime.NumGoroutine(), humanize.Bytes(memStats.Alloc), memStats.Mallocs)
+		// 		}
+		// 	}
+		// }()
+
+		ctx, cancel := context.WithCancel(context.Background())
+
+		// listen for SIGINT and SIGTERM and call cancel on the context
 		go func() {
-			err = scraper.Scrape(workers, results)
+			sigint := make(chan os.Signal, 1)
+			signal.Notify(sigint, os.Interrupt, syscall.SIGTERM)
+			<-sigint
+			cancel()
+			time.Sleep(200 * time.Millisecond)
+			os.Exit(1)
+		}()
+
+		go func() {
+			var pbDelegate debscraper.ProgressDelegate
+			if progress {
+				pbDelegate = &debscraper.CliProgressBar{}
+			} else {
+				pbDelegate = &debscraper.NoopProgressBar{}
+			}
+
+			err = scraper.Scrape(ctx, workers, results, pbDelegate)
 		}()
 
 		if err != nil {
@@ -59,15 +145,18 @@ to quickly create a Cobra application.`,
 		if err != nil {
 			return err
 		}
+		defer outFile.Close()
 
 		csvWriter := csv.NewWriter(outFile)
 		defer csvWriter.Flush()
-		encoder := csvutil.NewEncoder(csvWriter)
+		// encoder := csvutil.NewEncoder(csvWriter)
+		encoder := debscraper.NewCsvEncoder(outFile)
 
 		// cvsWriter.Write([]string{"filename", "package", "version", "architecture", "md5", "sha1", "sha256", "size", "mode", "owner", "group"})
 
 		for result := range results {
 			err = encoder.Encode(result)
+
 			// err = cvsWriter.Write([]string{result.Filename, result.Package, result.Version, result.Architecture, result.MD5, result.SHA1, result.SHA256, fmt.Sprintf("%d", result.Size), fmt.Sprintf("%o", result.Mode), result.Owner, result.Group})
 			if err != nil {
 				return err
@@ -92,8 +181,10 @@ func init() {
 	// debscrapeCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	debscrapeCmd.Flags().IntVarP(&workers, "workers", "w", 10, "Number of workers")
 	debscrapeCmd.Flags().StringVarP(&outputFilePath, "output", "o", "", "Output file")
-	debscrapeCmd.Flags().StringVarP(&url, "url", "u", "http://ftp.debian.org/debian", "Mirror URL")
+	debscrapeCmd.Flags().StringVarP(&url, "url", "u", "", "Mirror URL (if empty, default list is used in round robim node)")
 	debscrapeCmd.Flags().StringVarP(&arch, "arch", "a", "amd64", "Architecture")
 	debscrapeCmd.Flags().StringVarP(&distro, "distro", "d", "buster", "Distribution")
 	debscrapeCmd.Flags().StringVarP(&component, "component", "c", "main", "Component")
+	debscrapeCmd.Flags().BoolVarP(&progress, "progress", "p", false, "Show progress bar")
+	debscrapeCmd.Flags().StringVar(&logfile, "log", "", "Log file")
 }

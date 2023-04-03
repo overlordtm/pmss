@@ -69,3 +69,4 @@ localdata/
 
 # protobuf generated files
 *.pb.go
+pmss
