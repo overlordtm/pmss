@@ -195,7 +195,7 @@ func (s *DebScraper) Scrape(ctx context.Context, concurrency int, hashItemCh cha
 
 	progress.Start(int64(len(pkgs)))
 
-	workCh := make(chan packageInfo, len(pkgs))
+	workCh := make(chan packageInfo, 0)
 
 	go func() {
 		for _, pkg := range pkgs {
@@ -236,7 +236,7 @@ func (s *DebScraper) Scrape(ctx context.Context, concurrency int, hashItemCh cha
 	}
 
 	wg.Wait()
-	return nil
+	return err
 }
 
 func (s *DebScraper) retryFetchPackage(ctx context.Context, attempts int, pkg packageInfo) (items []HashItem, err error) {
