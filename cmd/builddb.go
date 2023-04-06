@@ -11,9 +11,9 @@ import (
 
 	"strings"
 
+	"github.com/overlordtm/pmss/pkg/datastore"
+	"github.com/overlordtm/pmss/pkg/datastore/sqlitestore"
 	"github.com/overlordtm/pmss/pkg/debscraper"
-	"github.com/overlordtm/pmss/pkg/hashstore"
-	"github.com/overlordtm/pmss/pkg/hashstore/sqlitestore"
 	"github.com/spf13/cobra"
 )
 
@@ -29,10 +29,10 @@ var builddbCmd = &cobra.Command{
 	Long:  `Imports data from a file into database`,
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 
-		var hashStore hashstore.HashDb
+		var ds *datastore.Store
 
 		if strings.HasSuffix(dbPath, ".sqlite3") {
-			hashStore, err = sqlitestore.New(sqlitestore.WithDbUrl(dbPath))
+			ds, err = datastore.New(datastore.WithDbUrl(dbPath))
 			if err != nil {
 				return fmt.Errorf("error while creating hash store: %v", err)
 			}
@@ -56,7 +56,7 @@ var builddbCmd = &cobra.Command{
 					return fmt.Errorf("error while creating csv decoder: %v", err)
 				}
 
-				batch := make([]hashstore.WhitelistRow, 0, sqlitestore.WhitelistBatchSize)
+				batch := make([]datastore.WhitelistItem, 0, sqlitestore.WhitelistBatchSize)
 				for {
 					item := debscraper.HashItem{}
 					err := decoder.Decode(&item)
@@ -67,12 +67,12 @@ var builddbCmd = &cobra.Command{
 						return fmt.Errorf("error while decoding csv: %v", err)
 					}
 
-					batch = append(batch, hashstore.WhitelistRow{
+					batch = append(batch, datastore.WhitelistItem{
 						MD5:    item.MD5,
 						SHA1:   item.SHA1,
 						SHA256: item.SHA256,
 						Path:   item.Filename,
-						Meta: hashstore.WhitelistMeta{
+						Meta: datastore.WhitelistMeta{
 							Package: item.Package,
 							Version: item.Version,
 							Size:    item.Size,
@@ -83,7 +83,7 @@ var builddbCmd = &cobra.Command{
 					})
 
 					if len(batch) == sqlitestore.WhitelistBatchSize {
-						err := hashStore.Whitelist().InsertBatch(batch)
+						err := ds.Whitelist().InsertBatch(batch)
 						if err != nil {
 							return fmt.Errorf("error while adding to whitelist: %v", err)
 						}
@@ -93,7 +93,7 @@ var builddbCmd = &cobra.Command{
 
 				if len(batch) > 0 {
 					for _, item := range batch {
-						err := hashStore.Whitelist().Insert(item)
+						err := ds.Whitelist().Insert(item)
 						if err != nil {
 							return fmt.Errorf("error while adding to whitelist: %v", err)
 						}

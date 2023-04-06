@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 	"time"
 
@@ -17,45 +18,51 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	workers        int
-	url            string
-	outputFilePath string
-	distro         string
-	arch           string
-	component      string
-	logfile        string
-	progress       bool = true
-)
+type DebscrapeFlags struct {
+	Workers        int
+	Url            string
+	OutputFilePath string
+	Distro         string
+	Arch           string
+	Component      string
+	Logfile        string
+	Progress       bool
+}
+
+var debscrapeFlags DebscrapeFlags = DebscrapeFlags{
+	Workers:        runtime.NumCPU() * 2,
+	Url:            "",
+	OutputFilePath: "",
+	Distro:         "buster",
+	Arch:           "amd64",
+	Component:      "main",
+	Logfile:        "",
+	Progress:       false,
+}
+
+func init() {
+	debscrapeFlags.OutputFilePath = fmt.Sprintf("debscrape-%s-%s-%s-%s.csv", debscrapeFlags.Distro, debscrapeFlags.Arch, debscrapeFlags.Component, time.Now().Format("2006-01-02-15-04-05"))
+}
 
 // debscrapeCmd represents the debscrape command
 var debscrapeCmd = &cobra.Command{
 	Use:   "debscrape",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	PreRun: func(cmd *cobra.Command, args []string) {
-		if outputFilePath == "" {
-			outputFilePath = fmt.Sprintf("debscrape-%s-%s-%s-%s.csv", distro, arch, component, time.Now().Format("2006-01-02-15-04-05"))
-		}
-	},
+	Short: "Scrapes packages in debian repository for hashes",
+	Long:  ``,
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 
 		opts := make([]debscraper.Option, 0)
 
-		if logfile != "" {
+		if debscrapeFlags.Logfile != "" {
 			logger := logrus.New()
 			logger.SetFormatter(&logrus.TextFormatter{
 				DisableColors: true,
 				FullTimestamp: true,
 			})
-			logger.SetLevel(logrus.DebugLevel)
 
-			logFileFd, err := os.OpenFile(logfile, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0644)
+			logger.SetLevel(logrus.GetLevel())
+
+			logFileFd, err := os.OpenFile(debscrapeFlags.Logfile, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0644)
 			if err != nil {
 				return fmt.Errorf("error while opening log file: %w", err)
 			}
@@ -63,38 +70,26 @@ to quickly create a Cobra application.`,
 
 			logger.SetOutput(logFileFd)
 
-			// flush logfile every 5 seconds
-			// ticker := time.NewTicker(5 * time.Second)
-			// defer ticker.Stop()
-			// go func() {
-			// 	for {
-			// 		select {
-			// 		case <-ticker.C:
-			// 			logFileFd.Sync()
-			// 		}
-			// 	}
-			// }()
-
 			opts = append(opts, debscraper.WithLogger(logger))
 
 		} else {
 			logrus.SetOutput(os.Stdout)
 		}
 
-		if url != "" {
-			opts = append(opts, debscraper.WithMirrorUrl(url))
+		if debscrapeFlags.Url != "" {
+			opts = append(opts, debscraper.WithMirrorUrl(debscrapeFlags.Url))
 		}
 
-		if distro != "" {
-			opts = append(opts, debscraper.WithDistro(distro))
+		if debscrapeFlags.Distro != "" {
+			opts = append(opts, debscraper.WithDistro(debscrapeFlags.Distro))
 		}
 
-		if arch != "" {
-			opts = append(opts, debscraper.WithArch(arch))
+		if debscrapeFlags.Arch != "" {
+			opts = append(opts, debscraper.WithArch(debscrapeFlags.Arch))
 		}
 
-		if component != "" {
-			opts = append(opts, debscraper.WithComponent(component))
+		if debscrapeFlags.Component != "" {
+			opts = append(opts, debscraper.WithComponent(debscrapeFlags.Component))
 		}
 
 		scraper := debscraper.New(opts...)
@@ -128,20 +123,20 @@ to quickly create a Cobra application.`,
 
 		go func() {
 			var pbDelegate debscraper.ProgressDelegate
-			if progress {
+			if debscrapeFlags.Progress {
 				pbDelegate = &debscraper.CliProgressBar{}
 			} else {
 				pbDelegate = &debscraper.NoopProgressBar{}
 			}
 
-			err = scraper.Scrape(ctx, workers, results, pbDelegate)
+			err = scraper.Scrape(ctx, debscrapeFlags.Workers, results, pbDelegate)
 		}()
 
 		if err != nil {
 			return err
 		}
 
-		outFile, err := os.OpenFile(outputFilePath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+		outFile, err := os.OpenFile(debscrapeFlags.OutputFilePath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 		if err != nil {
 			return err
 		}
@@ -179,12 +174,12 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// debscrapeCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	debscrapeCmd.Flags().IntVarP(&workers, "workers", "w", 10, "Number of workers")
-	debscrapeCmd.Flags().StringVarP(&outputFilePath, "output", "o", "", "Output file")
-	debscrapeCmd.Flags().StringVarP(&url, "url", "u", "", "Mirror URL (if empty, default list is used in round robim node)")
-	debscrapeCmd.Flags().StringVarP(&arch, "arch", "a", "amd64", "Architecture")
-	debscrapeCmd.Flags().StringVarP(&distro, "distro", "d", "buster", "Distribution")
-	debscrapeCmd.Flags().StringVarP(&component, "component", "c", "main", "Component")
-	debscrapeCmd.Flags().BoolVarP(&progress, "progress", "p", false, "Show progress bar")
-	debscrapeCmd.Flags().StringVar(&logfile, "log", "", "Log file")
+	debscrapeCmd.Flags().IntVar(&debscrapeFlags.Workers, "workers", debscrapeFlags.Workers, "Number of workers")
+	debscrapeCmd.Flags().StringVar(&debscrapeFlags.OutputFilePath, "output", debscrapeFlags.OutputFilePath, "Output file")
+	debscrapeCmd.Flags().StringVar(&debscrapeFlags.Url, "url", "", "Mirror URL (if empty, default list is used in round robim node)")
+	debscrapeCmd.Flags().StringVar(&debscrapeFlags.Arch, "arch", "amd64", "Architecture")
+	debscrapeCmd.Flags().StringVar(&debscrapeFlags.Distro, "distro", "buster", "Distribution")
+	debscrapeCmd.Flags().StringVar(&debscrapeFlags.Component, "component", "main", "Component")
+	debscrapeCmd.Flags().BoolVar(&debscrapeFlags.Progress, "progress", false, "Show progress bar")
+	debscrapeCmd.Flags().StringVar(&debscrapeFlags.Logfile, "log", "", "Log file")
 }

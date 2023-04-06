@@ -7,10 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/dustin/go-humanize"
 	"github.com/isbm/go-deb"
 	"github.com/sirupsen/logrus"
 )
@@ -38,6 +40,7 @@ type packageInfo struct {
 	Filename     string
 	MD5Sum       string
 	SHA256       string
+	Size         uint64
 }
 
 func New(opts ...Option) *DebScraper {
@@ -63,7 +66,7 @@ func New(opts ...Option) *DebScraper {
 	}
 }
 
-func (s *DebScraper) listPackages(ctx context.Context) ([]packageInfo, error) {
+func (s *DebScraper) ListPackages(ctx context.Context) ([]packageInfo, error) {
 
 	mirrorUrl := s.opts.mirrorUrl()
 
@@ -73,6 +76,7 @@ func (s *DebScraper) listPackages(ctx context.Context) ([]packageInfo, error) {
 		return nil, fmt.Errorf("error while creating request: %w", err)
 	}
 
+	s.logger.WithField("url", req.URL.String()).Debugln("Fetching Packages.gz")
 	res, err := s.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error while fetching Packages.gz: %w", err)
@@ -114,6 +118,8 @@ func (s *DebScraper) listPackages(ctx context.Context) ([]packageInfo, error) {
 			pkg.MD5Sum = strings.TrimPrefix(line, "MD5Sum: ")
 		} else if strings.HasPrefix(line, "SHA256: ") {
 			pkg.SHA256 = strings.TrimPrefix(line, "SHA256: ")
+		} else if strings.HasPrefix(line, "Size: ") {
+			pkg.Size, _ = strconv.ParseUint(strings.TrimPrefix(line, "Size: "), 10, 64)
 		} else if line == "" {
 
 			if pkg.Name == "" || pkg.Version == "" || pkg.Architecture == "" || pkg.Filename == "" || (pkg.MD5Sum == "" && pkg.SHA256 == "") {
@@ -141,6 +147,7 @@ func (s *DebScraper) fetchPackage(ctx context.Context, pkgInfo packageInfo) ([]H
 		"version": pkgInfo.Version,
 		"arch":    pkgInfo.Architecture,
 		"pkgUri":  pkgUri,
+		"size":    humanize.Bytes(pkgInfo.Size),
 	}).Info("fetching package")
 
 	options := &deb.PackageOptions{
@@ -181,7 +188,7 @@ func (s *DebScraper) fetchPackage(ctx context.Context, pkgInfo packageInfo) ([]H
 }
 
 func (s *DebScraper) Scrape(ctx context.Context, concurrency int, hashItemCh chan HashItem, progress ProgressDelegate) (err error) {
-	pkgs, err := s.listPackages(ctx)
+	pkgs, err := s.ListPackages(ctx)
 	if err != nil {
 		return fmt.Errorf("error while listing packages: %w", err)
 	}

@@ -15,7 +15,7 @@ func setup() *DebScraper {
 
 func TestListPackages(t *testing.T) {
 	s := setup()
-	pkgs, err := s.listPackages(context.Background())
+	pkgs, err := s.ListPackages(context.Background())
 	if err != nil {
 		t.Error(err)
 	}
