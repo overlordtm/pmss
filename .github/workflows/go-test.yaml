@@ -1,0 +1,31 @@
+name: Go package
+
+on: [push]
+
+jobs:
+  test:
+    env:
+      PMSS_PROJ_ROOT: ${{github.workspace}}
+      GOPATH: /home/runner/go
+      # SEt default branch to clone from to main
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: 1.20.1
+      
+      - name: Print Go version
+        run: go version
+
+      - name: Create test dir
+        run: mkdir -p $PMSS_PROJ_ROOT/test/data
+      
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Run tests
+        run: go test -v ./...

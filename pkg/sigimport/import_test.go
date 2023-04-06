@@ -7,11 +7,16 @@ import (
 )
 
 func TestImport(t *testing.T) {
-
-	dbPath := "test.db"
+	projRoot := os.Getenv("PMSS_PROJ_ROOT")
+	dbPath := fmt.Sprintf("%s/test/test_sig.db", projRoot)
+	fmt.Printf("dbPath: '%s'\n", dbPath)
 	defer os.Remove(dbPath)
 
-	err := Import(fmt.Sprintf("%s?_journal=OFF&_locking=EXCLUSIVE&_sync=OFF", dbPath), "/home/az/ws.az/pmss/data/full2.csv")
+	csvFile := fmt.Sprintf("%s/test/test.csv", projRoot)
+	fmt.Printf("csvFile: '%s'\n", csvFile)
+
+	dbURI := fmt.Sprintf("%s?_journal=OFF&_locking=EXCLUSIVE&_sync=OFF", dbPath)
+	err := Import(dbURI, csvFile)
 	if err != nil {
 		t.Error(err)
 	}
