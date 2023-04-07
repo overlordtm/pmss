@@ -61,3 +61,11 @@ func (repo *blacklistRepository) FindByMD5(md5 string) (*BlacklistItem, error) {
 	}
 	return &row, nil
 }
+
+func (repo *blacklistRepository) Insert(row BlacklistItem) error {
+	return repo.db.Create(&row).Error
+}
+
+func (repo *blacklistRepository) InsertBatch(rows []BlacklistItem) error {
+	return repo.db.CreateInBatches(&rows, 100).Error
+}

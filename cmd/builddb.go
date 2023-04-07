@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/overlordtm/pmss/pkg/datastore"
-	"github.com/overlordtm/pmss/pkg/datastore/sqlitestore"
 	"github.com/overlordtm/pmss/pkg/debscraper"
 	"github.com/spf13/cobra"
 )
@@ -61,7 +60,7 @@ var builddbCmd = &cobra.Command{
 					return fmt.Errorf("error while creating csv decoder: %v", err)
 				}
 
-				batch := make([]datastore.WhitelistItem, 0, sqlitestore.WhitelistBatchSize)
+				batch := make([]datastore.WhitelistItem, 0, 100)
 				for {
 					item := debscraper.HashItem{}
 					err := decoder.Decode(&item)
@@ -87,22 +86,11 @@ var builddbCmd = &cobra.Command{
 						},
 					})
 
-					if len(batch) == sqlitestore.WhitelistBatchSize {
-						err := ds.Whitelist().InsertBatch(batch)
-						if err != nil {
-							return fmt.Errorf("error while adding to whitelist: %v", err)
-						}
-						batch = batch[:0]
+					err = ds.Whitelist().InsertBatch(batch)
+					if err != nil {
+						return fmt.Errorf("error while adding to whitelist: %v", err)
 					}
-				}
-
-				if len(batch) > 0 {
-					for _, item := range batch {
-						err := ds.Whitelist().Insert(item)
-						if err != nil {
-							return fmt.Errorf("error while adding to whitelist: %v", err)
-						}
-					}
+					batch = batch[:0]
 				}
 
 			} else {

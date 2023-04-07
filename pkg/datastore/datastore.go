@@ -55,14 +55,14 @@ func New(opts ...Option) (*Store, error) {
 	}, nil
 }
 
-func (ds *Store) Packages() PackageRepository {
+func (ds *Store) Packages() *packageRepository {
 	return ds.packageRepository
 }
 
-func (ds *Store) Whitelist() WhitelistRepository {
-	return nil
+func (ds *Store) Whitelist() *whitelistRepository {
+	return ds.whitelistRepository
 }
 
-func (ds *Store) Blacklist() BlacklistRepository {
+func (ds *Store) Blacklist() *blacklistRepository {
 	return nil
 }

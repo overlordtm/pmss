@@ -40,6 +40,12 @@ func (p *Pmss) FindByHash(hash string) (r *Result, err error) {
 
 	variant := hashvariant.DetectHashVariant(hash)
 
+	switch variant {
+	case hashvariant.MD5:
+	case hashvariant.SHA1:
+	case hashvariant.SHA256:
+	}
+
 	r.HashVariant = variant
 
 	return r, nil

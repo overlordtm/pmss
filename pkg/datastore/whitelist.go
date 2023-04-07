@@ -68,3 +68,11 @@ func (repo *whitelistRepository) FindByMD5(md5 string) (*WhitelistItem, error) {
 	}
 	return &row, nil
 }
+
+func (repo *whitelistRepository) Insert(row WhitelistItem) error {
+	return repo.db.Create(&row).Error
+}
+
+func (repo *whitelistRepository) InsertBatch(rows []WhitelistItem) error {
+	return repo.db.CreateInBatches(&rows, 100).Error
+}
