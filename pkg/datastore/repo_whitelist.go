@@ -47,6 +47,7 @@ func (WhitelistMeta) GormDBDataType(db *gorm.DB, field *schema.Field) string {
 	return ""
 }
 
+// WhitelistItem represents a file that is know to be good (non-malicious). Less important attributes (the ones you do not need to query by) are stored in Meta field as JSON
 type WhitelistItem struct {
 	gorm.Model
 	MD5    string
