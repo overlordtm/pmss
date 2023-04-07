@@ -76,14 +76,14 @@ var builddbCmd = &cobra.Command{
 						SHA1:   item.SHA1,
 						SHA256: item.SHA256,
 						Path:   item.Filename,
-						Meta: datastore.WhitelistMeta{
+						Meta: datastore.JSONField[datastore.WhitelistMeta]{Val: datastore.WhitelistMeta{
 							Package: item.Package,
 							Version: item.Version,
 							Size:    item.Size,
 							Owner:   item.Owner,
 							Group:   item.Group,
 							Mode:    uint32(item.Mode),
-						},
+						}},
 					})
 
 					err = ds.Whitelist().InsertBatch(batch)

@@ -5,7 +5,6 @@ import (
 )
 
 type File struct {
-	*gorm.Model
 	MachineID string `gorm:"type:varchar(255)"`
 	MachineIP string `gorm:"type:varchar(255)"`
 	Path      string `gorm:"type:varchar(4096)"`

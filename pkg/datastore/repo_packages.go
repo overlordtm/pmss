@@ -7,7 +7,6 @@ import (
 )
 
 type Package struct {
-	gorm.Model
 	Name         string
 	Version      string
 	Size         uint64

@@ -1,13 +1,7 @@
 package datastore
 
 import (
-	"database/sql/driver"
-	"encoding/json"
-	"errors"
-	"fmt"
-
 	"gorm.io/gorm"
-	"gorm.io/gorm/schema"
 )
 
 type WhitelistMeta struct {
@@ -21,31 +15,31 @@ type WhitelistMeta struct {
 	Group   string `json:"group"`
 }
 
-// Scan scan value into Jsonb, implements sql.Scanner interface
-func (j *WhitelistMeta) Scan(value interface{}) error {
-	bytes, ok := value.([]byte)
-	if !ok {
-		return errors.New(fmt.Sprint("Failed to unmarshal JSONB value:", value))
-	}
+// // Scan scan value into Jsonb, implements sql.Scanner interface
+// func (j *WhitelistMeta) Scan(value interface{}) error {
+// 	bytes, ok := value.([]byte)
+// 	if !ok {
+// 		return errors.New(fmt.Sprint("Failed to unmarshal JSONB value:", value))
+// 	}
 
-	return json.Unmarshal(bytes, j)
-}
+// 	return json.Unmarshal(bytes, j)
+// }
 
-// Value return json value, implement driver.Valuer interface
-func (j WhitelistMeta) Value() (driver.Value, error) {
-	return json.Marshal(j)
-}
+// // Value return json value, implement driver.Valuer interface
+// func (j WhitelistMeta) Value() (driver.Value, error) {
+// 	return json.Marshal(j)
+// }
 
-func (WhitelistMeta) GormDBDataType(db *gorm.DB, field *schema.Field) string {
-	// returns different database type based on driver name
-	switch db.Dialector.Name() {
-	case "mysql", "sqlite":
-		return "JSON"
-	case "postgres":
-		return "JSONB"
-	}
-	return ""
-}
+// func (WhitelistMeta) GormDBDataType(db *gorm.DB, field *schema.Field) string {
+// 	// returns different database type based on driver name
+// 	switch db.Dialector.Name() {
+// 	case "mysql", "sqlite":
+// 		return "JSON"
+// 	case "postgres":
+// 		return "JSONB"
+// 	}
+// 	return ""
+// }
 
 // WhitelistItem represents a file that is know to be good (non-malicious). Less important attributes (the ones you do not need to query by) are stored in Meta field as JSON
 type WhitelistItem struct {
@@ -54,7 +48,7 @@ type WhitelistItem struct {
 	SHA1   string
 	SHA256 string
 	Path   string
-	Meta   WhitelistMeta
+	Meta   JSONField[WhitelistMeta]
 }
 
 type whitelistRepository struct {
