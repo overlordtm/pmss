@@ -18,7 +18,7 @@ type CliFlags struct {
 	Debug      bool
 	DebugPprof bool
 	LogLevel   string
-	DBPath     string
+	DBUrl      string
 }
 
 var rootFlags CliFlags = CliFlags{}
@@ -70,7 +70,7 @@ func init() {
 	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.pmss.yaml)")
 	rootCmd.PersistentFlags().BoolVarP(&rootFlags.Verbose, "verbose", "v", rootFlags.Verbose, "verbose output")
 	rootCmd.PersistentFlags().BoolVarP(&rootFlags.Debug, "debug", "d", rootFlags.Debug, "debug output")
-	rootCmd.PersistentFlags().StringVar(&rootFlags.DBPath, "db-path", "pmss.sqlite3", "path to database file")
+	rootCmd.PersistentFlags().StringVar(&rootFlags.DBUrl, "db-url", "sqlite3://pmss.sqlite3", "URL to database file")
 	rootCmd.PersistentFlags().StringVar(&rootFlags.LogLevel, "log-level", rootFlags.LogLevel, "log level (debug, info, warn, error, fatal, panic)")
 
 	// Cobra also supports local flags, which will only run

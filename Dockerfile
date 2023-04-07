@@ -1,4 +1,4 @@
-FROM scratch
+FROM busybox:latest
 
 ADD ./pmss /usr/bin/pmss
 

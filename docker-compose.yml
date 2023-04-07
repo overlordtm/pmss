@@ -4,6 +4,8 @@ services:
   pmss:
     build: .
     command: pmss
+    depends_on:
+      - mariadb
   mariadb:
     image: mariadb:10.11
     environment:
@@ -13,6 +15,13 @@ services:
       MARIADB_PASSWORD: pmss
     volumes:
       - db:/var/lib/mysql
-
+  adminer:
+    image: adminer
+    ports:
+      - 8080:8080
+    depends_on:
+      - mariadb
+    environment:
+      ADMINER_DEFAULT_SERVER: mariadb
 volumes:
   db: {}

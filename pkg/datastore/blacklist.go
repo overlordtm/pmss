@@ -48,3 +48,16 @@ type BlacklistItem struct {
 	Signature string
 	Meta      BlacklistMeta
 }
+
+type blacklistRepository struct {
+	db *gorm.DB
+}
+
+func (repo *blacklistRepository) FindByMD5(md5 string) (*BlacklistItem, error) {
+	var row BlacklistItem
+	err := repo.db.Where("md5 = ?", md5).First(&row).Error
+	if err != nil {
+		return nil, err
+	}
+	return &row, nil
+}

@@ -16,3 +16,8 @@ type BlacklistRepository interface {
 	InsertBatch([]BlacklistItem) error
 	Insert(BlacklistItem) error
 }
+
+type FilesRepository interface {
+	FindByMD5(string) (*File, error)
+	InsertBatch([]File) error
+}

@@ -1,12 +1,14 @@
 package pmss
 
 import (
+	"fmt"
+
+	"github.com/overlordtm/pmss/pkg/datastore"
 	"github.com/overlordtm/pmss/pkg/hashvariant"
-	"github.com/overlordtm/pmss/pkg/sigdb"
 )
 
 type Pmss struct {
-	db sigdb.SigDb
+	ds *datastore.Store
 }
 
 type Result struct {
@@ -17,7 +19,19 @@ type Result struct {
 
 func New(dbPath string) (*Pmss, error) {
 
-	return &Pmss{}, nil
+	dialector, err := datastore.ParseDBUrl(dbPath)
+	if err != nil {
+		return nil, err
+	}
+
+	ds, err := datastore.New(datastore.WithDb(dialector))
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize datastore: %v", err)
+	}
+
+	return &Pmss{
+		ds: ds,
+	}, nil
 }
 
 func (p *Pmss) FindByHash(hash string) (r *Result, err error) {

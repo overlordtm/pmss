@@ -23,37 +23,37 @@ type packageRepository struct {
 	db *gorm.DB
 }
 
-func (r *packageRepository) FindByMD5(md5 string) (*Package, error) {
+func (repo *packageRepository) FindByMD5(md5 string) (*Package, error) {
 	var row Package
-	err := r.db.Where("md5 = ?", md5).First(&row).Error
+	err := repo.db.Where("md5 = ?", md5).First(&row).Error
 	if err != nil {
 		return nil, err
 	}
 	return &row, nil
 }
 
-func (r *packageRepository) FindByName(name string) (*Package, error) {
+func (repo *packageRepository) FindByName(name string) (*Package, error) {
 	var row Package
-	err := r.db.Where("name = ?", name).First(&row).Error
+	err := repo.db.Where("name = ?", name).First(&row).Error
 	if err != nil {
 		return nil, err
 	}
 	return &row, nil
 }
 
-func (r *packageRepository) FindAll() ([]Package, error) {
+func (repo *packageRepository) FindAll() ([]Package, error) {
 	var rows []Package
-	err := r.db.Find(&rows).Error
+	err := repo.db.Find(&rows).Error
 	if err != nil {
 		return nil, err
 	}
 	return rows, nil
 }
 
-func (r *packageRepository) Insert(row Package) error {
-	return r.db.Create(&row).Error
+func (repo *packageRepository) Insert(row Package) error {
+	return repo.db.Create(&row).Error
 }
 
-func (r *packageRepository) InsertBatch(rows []Package) error {
-	return r.db.CreateInBatches(&rows, 100).Error
+func (repo *packageRepository) InsertBatch(rows []Package) error {
+	return repo.db.CreateInBatches(&rows, 100).Error
 }

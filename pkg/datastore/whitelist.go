@@ -55,3 +55,16 @@ type WhitelistItem struct {
 	Path   string
 	Meta   WhitelistMeta
 }
+
+type whitelistRepository struct {
+	db *gorm.DB
+}
+
+func (repo *whitelistRepository) FindByMD5(md5 string) (*WhitelistItem, error) {
+	var row WhitelistItem
+	err := repo.db.Where("md5 = ?", md5).First(&row).Error
+	if err != nil {
+		return nil, err
+	}
+	return &row, nil
+}

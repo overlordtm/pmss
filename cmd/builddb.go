@@ -29,10 +29,15 @@ var builddbCmd = &cobra.Command{
 	Long:  `Imports data from a file into database`,
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 
+		dialector, err := datastore.ParseDBUrl(dbPath)
+		if err != nil {
+			return err
+		}
+
 		var ds *datastore.Store
 
 		if strings.HasSuffix(dbPath, ".sqlite3") {
-			ds, err = datastore.New(datastore.WithDbUrl(dbPath))
+			ds, err = datastore.New(datastore.WithDb(dialector))
 			if err != nil {
 				return fmt.Errorf("error while creating hash store: %v", err)
 			}

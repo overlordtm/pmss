@@ -7,34 +7,32 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/overlordtm/pmss/pkg/httpserver"
 	"github.com/overlordtm/pmss/pkg/pmss"
-	"github.com/overlordtm/pmss/pkg/server/httpserver"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
-var (
+type ServerFlags struct {
 	httpListenAddr string
-)
+}
+
+var serverFlags = ServerFlags{}
 
 // serverCmd represents the server command
 var serverCmd = &cobra.Command{
 	Use:   "server",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Start server instance",
+	Long:  ``,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println("server called")
 
-		pmss, err := pmss.New("test.db")
+		pmss, err := pmss.New(rootFlags.DBUrl)
 		if err != nil {
 			return fmt.Errorf("failed to initialize PMSS: %v", err)
 		}
 
-		srv := httpserver.New(context.Background(), pmss)
+		logrus.WithField("httpListenAddr", serverFlags.httpListenAddr).Info("Starting HTTP server")
+		srv := httpserver.New(context.Background(), pmss, httpserver.WithListenAddr(serverFlags.httpListenAddr))
 		return srv.Start()
 	},
 }
@@ -51,5 +49,5 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// serverCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	serverCmd.Flags().StringVar(&httpListenAddr, "http-listen-addr", ":8080", "HTTP listen address")
+	serverCmd.Flags().StringVar(&serverFlags.httpListenAddr, "http-listen-addr", ":8080", "HTTP listen address")
 }

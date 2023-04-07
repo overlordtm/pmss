@@ -18,11 +18,15 @@ var updatedbCmd = &cobra.Command{
 	Short: "A brief description of your command",
 	Long:  ``,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println("updatedb called")
+
+		dialector, err := datastore.ParseDBUrl(dbPath)
+		if err != nil {
+			return err
+		}
 
 		scraper := debscraper.New()
 
-		store, err := datastore.New(datastore.WithDbUrl(rootFlags.DBPath))
+		store, err := datastore.New(datastore.WithDb(dialector))
 		if err != nil {
 			return fmt.Errorf("error while creating datastore: %v", err)
 		}
