@@ -8,17 +8,17 @@ type ScannedFile struct {
 	gorm.Model
 
 	// Path
-	Path string `gorm:"type:varchar(4096)"`
+	Path string `gorm:"type:varchar(1024);notnull"`
 
 	// Hashes
-	SHA1   string `gorm:"type:char(40)"`
+	SHA1   string `gorm:"type:char(40);check:at_least_one,(sha1 IS NOT NULL) OR (sha256 IS NOT NULL) OR (md5 IS NOT NULL)"`
 	SHA256 string `gorm:"type:char(64)"`
 	MD5    string `gorm:"type:char(32)"`
 
 	// File info
-	Size     uint64 `gorm:"type:bigint"`
-	FileMode uint32 `gorm:"type:unsigned int"`
-	MimeType string `gorm:"type:varchar(255)"`
+	Size     uint64 `gorm:"notnull"`
+	FileMode uint32 `gorm:"notnull"`
+	MimeType string `gorm:"type:varchar(255);notnull"`
 
 	// File times
 	Mtime uint64 `gorm:"type:timestamp"`
@@ -26,19 +26,19 @@ type ScannedFile struct {
 	Ctime uint64 `gorm:"type:timestamp"`
 
 	// Users
-	Owner string `gorm:"type:varchar(255)"`
-	Group string `gorm:"type:varchar(255)"`
+	Owner string `gorm:"type:varchar(255);notnull"`
+	Group string `gorm:"type:varchar(255);notnull"`
 
 	// Known file reference
-	KnownMatchID uint      `gorm:"type:unsigned int"`
+	KnownMatchID *uint
 	KnownMatch   KnownFile `gorm:"foreignKey:KnownMatchID"`
 
 	// Run info
-	ReportRunID uint      `gorm:"type:unsigned int,index:idx_reportrunid"`
+	ReportRunID uint
 	ReportRun   ReportRun `gorm:"foreignKey:ReportRunID"`
 
 	// Submitting Machine info
-	MachineID string  `gorm:"type:varchar(255),index:idx_machineid"`
+	MachineID uint
 	Machine   Machine `gorm:"foreignKey:MachineID"`
 }
 

@@ -11,7 +11,7 @@ func TestParseDbUrl(t *testing.T) {
 		"sqlite3://test.db",
 		"sqlite",
 	}, {
-		"mysql://user:password@10.10.10.10:3306",
+		"mysql://user:password@tcp(mariadb:3306)",
 		"mysql",
 	}}
 

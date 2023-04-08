@@ -7,15 +7,15 @@ import (
 type KnownFile struct {
 	gorm.Model
 	// Path, Hashes, Indexed
-	Path   string `gorm:"type:varchar(4096),index:path_sha1"`
-	SHA1   string `gorm:"type:char(40),index:path_sha1"`
+	Path   string `gorm:"varchar(1024);index:path_sha1"`
+	SHA1   string `gorm:"type:char(40);index:path_sha1"`
 	SHA256 string `gorm:"type:char(64)"`
 	MD5    string `gorm:"type:char(32)"`
 
 	// File info
-	Size     int64  `gorm:"type:bigint"`
-	Mode     uint32 `gorm:"type:unsigned int"`
-	MimeType string `gorm:"type:varchar(255)"`
+	Size     int64
+	Mode     uint32
+	MimeType string `gorm:"type:char(255)"`
 
 	// File times
 	Mtime uint64 `gorm:"type:timestamp"`
@@ -23,10 +23,10 @@ type KnownFile struct {
 	Ctime uint64 `gorm:"type:timestamp"`
 
 	// Wether was scraped or voted for
-	FromDeb bool `gorm:"type:bool"`
+	FromDeb bool
 
 	// Is it malicious
-	IsSafe bool `gorm:"type:bool"`
+	IsSafe bool
 }
 
 type knownFileRepository struct {

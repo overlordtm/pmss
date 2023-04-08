@@ -7,7 +7,7 @@ import (
 )
 
 func TestDatastore(t *testing.T) {
-	dbPath := "mysql://root:root@mariadb:3306/pmss"
+	dbPath := "mysql://pmss:pmss@tcp(mariadb:3306)/pmss"
 	dialector, err := datastore.ParseDBUrl(dbPath)
 	if err != nil {
 		t.Error(err)

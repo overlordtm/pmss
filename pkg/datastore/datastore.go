@@ -41,9 +41,8 @@ func New(opts ...Option) (*Store, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error while opening database: %v", err)
 	}
-
-	db.AutoMigrate(&Package{})
 	db.AutoMigrate(&Machine{})
+	db.AutoMigrate(&Package{})
 	db.AutoMigrate(&KnownFile{})
 	db.AutoMigrate(&ScannedFile{})
 	db.AutoMigrate(&ReportRun{})

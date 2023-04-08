@@ -8,11 +8,12 @@ import (
 
 // Machine represents information about a machine on the network. It also contains info whether the machine is allowed to submit files.
 type Machine struct {
-	Hostname    string `gorm:"primaryKey"`
-	IPv4        string `gorm:"type:varchar(15),index:idx_ip4,unique"`
-	IPv6        string `gorm:"type:varchar(39),index:idx_ip6,unique"`
-	ApiKey      string `gorm:"type:varchar(64),index:idx_apikey,unique"`
-	AllowSubmit bool   `gorm:"type:bool"`
+	gorm.Model
+	Hostname    string `gorm:"type:char(255);uniqueIndex:;notnull"`
+	IPv4        string `gorm:"type:char(15);uniqueIndex:;notnull"`
+	IPv6        string `gorm:"type:char(39);uniqueIndex:;notnull"`
+	ApiKey      string `gorm:"type:char(64);uniqueIndex:;notnull"`
+	AllowSubmit bool   `gorm:"type:bool;default:true;notnull"`
 }
 
 type machineRepository struct {
