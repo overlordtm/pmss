@@ -1,6 +1,8 @@
 package hashvariant
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type HashVariant string
 

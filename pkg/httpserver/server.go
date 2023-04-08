@@ -2,9 +2,11 @@ package httpserver
 
 import (
 	"context"
-	"encoding/json"
+	"fmt"
 	"net/http"
 
+	"github.com/gin-gonic/gin"
+	"github.com/overlordtm/pmss/pkg/datastore"
 	"github.com/overlordtm/pmss/pkg/pmss"
 )
 
@@ -43,16 +45,17 @@ func New(ctx context.Context, pmss *pmss.Pmss, opts ...Option) *Server {
 
 	srv.httpSrv = &http.Server{
 		Addr:    srv.options.listenAddr,
-		Handler: srv.router(),
+		Handler: srv.setupRouter(),
 	}
 
 	return srv
 }
 
-func (s *Server) router() *http.ServeMux {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/api/v1/hash/", s.findByHash)
-	return mux
+func (s *Server) setupRouter() *gin.Engine {
+	router := gin.Default()
+	router.GET("/api/v1/hash/:hash", s.handleHashInfo)
+	router.POST("/api/v1/report", s.handleBulkReport)
+	return router
 }
 
 func (s *Server) Start() error {
@@ -63,21 +66,60 @@ func (s *Server) Stop() error {
 	return s.httpSrv.Close()
 }
 
-func (s *Server) findByHash(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleHashInfo(c *gin.Context) {
 
-	hash := r.URL.Path[len("/api/v1/hash/"):]
-
-	result, err := s.pmss.FindByHash(hash)
+	hash := c.Param("hash")
+	if hash == "" {
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"error": "hash is required"})
+		return
+	}
+	malformed, result, err := s.pmss.FindByHash(hash)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		fmt.Printf("%v\n", err)
+		return
+	}
+	status := http.StatusOK
+	if malformed {
+		status = http.StatusBadRequest
+	}
+	c.IndentedJSON(status, result)
+}
+
+type BulkReportRequest struct {
+	Reports        []datastore.ScannedFile `json:"reports"`
+	MachineHostame string                  `json:"machine_hostname"`
+	MachineApiKey  string                  `json:"machine_api_key"`
+}
+
+func (s *Server) handleBulkReport(c *gin.Context) {
+
+	machine := &datastore.Machine{}
+	//Read json report
+	var req BulkReportRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		//Should bind json send response automatically
+		return
 	}
 
-	payload := HashResponse{
-		Hash:        hash,
-		HashVariant: result.HashVariant,
-		Status:      HashStatusSafe,
+	//Validate submitters MachineApiKey with combination of MachineHostame
+	canReport, err := s.pmss.FindMachineByHostname(req.MachineHostame, req.MachineApiKey, machine)
+	if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+	if !canReport {
+		c.IndentedJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(payload)
+	//Save report to database
+	var run datastore.ReportRun
+	if err := s.pmss.DoMachineReport(req.Reports, machine, &run); err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	c.IndentedJSON(http.StatusCreated, run)
+
 }

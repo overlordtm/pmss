@@ -14,12 +14,9 @@ type reportRunRepository struct {
 	db *gorm.DB
 }
 
-func (repo *machineRepository) NewReportRun() (*ReportRun, error) {
-	reportRun := &ReportRun{}
-	if err := repo.db.Create(reportRun).Error; err != nil {
-		return nil, err
-	}
-	return reportRun, nil
+func (repo *reportRunRepository) CreateNew(dest *ReportRun) error {
+	*dest = ReportRun{}
+	return repo.db.Create(dest).Error
 }
 func (repo *reportRunRepository) Insert(row Machine) error {
 	return repo.db.Create(&row).Error

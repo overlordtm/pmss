@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"github.com/overlordtm/pmss/pkg/hashvariant"
 	"gorm.io/gorm"
 )
 
@@ -16,8 +17,8 @@ type ScannedFile struct {
 	MD5    string `gorm:"type:char(32)"`
 
 	// File info
-	Size     uint64 `gorm:"notnull"`
-	FileMode uint32 `gorm:"notnull"`
+	Size     uint64 `gorm:"notnull;default:000"`
+	Mode     uint32 `gorm:"notnull;default:000"`
 	MimeType string `gorm:"type:varchar(255);notnull"`
 
 	// File times
@@ -46,16 +47,38 @@ type scannedFileRepository struct {
 	db *gorm.DB
 }
 
-func (repo *scannedFileRepository) FindBySHA1(sha1 string) (*ScannedFile, error) {
-	return repo.FindBy(&ScannedFile{SHA1: sha1})
+func (repo *scannedFileRepository) prepFindByHash(hash string, variant *hashvariant.HashVariant) (*gorm.DB, error) {
+	*variant = hashvariant.DetectHashVariant(hash)
+	switch *variant {
+	case hashvariant.SHA1:
+		return repo.db.Where("sha1 = ?", hash), nil
+	case hashvariant.SHA256:
+		return repo.db.Where("sha256 = ?", hash), nil
+	case hashvariant.MD5:
+		return repo.db.Where("md5 = ?", hash), nil
+	}
+	//return repo.db.Where("1 = 0")
+	return nil, hashvariant.ErrUnknownHashVariant
 }
 
-func (repo *scannedFileRepository) FindBy(fields *ScannedFile) (*ScannedFile, error) {
-	var row ScannedFile
-	if err := repo.db.Where(fields).First(&row).Error; err != nil {
-		return nil, err
+func (repo *scannedFileRepository) FindByHash(hash string, dest *KnownFile, destVariant *hashvariant.HashVariant) error {
+	stmt, err := repo.prepFindByHash(hash, destVariant)
+	if err != nil {
+		return err
 	}
-	return &row, nil
+	return stmt.First(dest).Error
+}
+
+func (repo *scannedFileRepository) FindAllByHash(hash string, dest *KnownFile, destVariant *hashvariant.HashVariant) error {
+	stmt, err := repo.prepFindByHash(hash, destVariant)
+	if err != nil {
+		return err
+	}
+	return stmt.Find(dest).Error
+}
+
+func (repo *scannedFileRepository) DB() *gorm.DB {
+	return repo.db
 }
 
 func (repo *scannedFileRepository) Insert(row ScannedFile) error {
