@@ -1,9 +1,8 @@
 package client
 
 import (
+	"net/http"
 	"os"
-
-	"github.com/overlordtm/pmss/pkg/detector"
 )
 
 type FileFeatures struct {
@@ -19,6 +18,19 @@ type FileFeatures struct {
 	Size     int64
 }
 
+type Files []FileFeatures
+
 type Client interface {
-	ScanFeatures(f FileFeatures) (detector.Result, error)
+	// ScanFeatures(f FileFeatures) (detector.Result, error)
+	SubmitFiles(files Files)
+}
+
+type HTTPClient struct {
+	httpClient *http.Client
+}
+
+func New() *HTTPClient {
+	return &HTTPClient{
+		httpClient: &http.Client{},
+	}
 }

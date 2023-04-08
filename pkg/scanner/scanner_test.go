@@ -1,76 +1,95 @@
-package scanner
+package scanner_test
 
 import (
 	"fmt"
+	"io"
+	"math/rand"
 	"os"
+	"path/filepath"
+	"sync"
 	"testing"
+	"time"
 
-	"github.com/overlordtm/pmss/pkg/checker/sigchecker"
-	"github.com/overlordtm/pmss/pkg/sigdb"
+	"github.com/overlordtm/pmss/pkg/client"
+	"github.com/overlordtm/pmss/pkg/scanner"
 )
 
-func TestScan(t *testing.T) {
-	// db := sigdb.New("/home/az/ws.az/pmss/test.db")
-	// err := db.Init()
-	// if err != nil {
-	// 	t.Error(err)
-	// }
+func initDirStructure(root string, depth int, maxfile int, maxdir int) error {
 
-	// c := sigchecker.New(db)
+	rnd := rand.New(rand.NewSource(42))
 
-	// checkers := []interface{}{c}
+	if depth == 0 {
+		return nil
+	}
+	if _, err := os.Stat(root); err == nil {
+		// root already exists, exit
+		return nil
+	}
 
-	// scanner := New(db, checkers)
+	os.MkdirAll(root, 0755)
 
-	// results, err := scanner.Scan("/home/az/ws.az/pmss/test/data")
-	// if err != nil {
-	// 	t.Error(err)
-	// }
+	dirCount := rnd.Intn(maxdir) + 1
+	fileCount := rnd.Intn(maxfile) + 1
 
-	// for _, r := range results {
-	// 	if r.Err != nil {
-	// 		t.Error(r.Err)
-	// 	}
-	// }
-	t.Fatal("not implemented")
+	for i := 0; i < fileCount; i++ {
+		f, err := os.Create(filepath.Join(root, fmt.Sprintf("file%d", i)))
+		if err != nil {
+			return err
+		}
+		fileSize := rnd.Intn(1024 * 100)
+
+		_, err = io.Copy(f, io.LimitReader(rnd, int64(fileSize)))
+
+		if err != nil {
+			return err
+		}
+		f.Close()
+	}
+
+	for i := 0; i < dirCount; i++ {
+		if err := initDirStructure(filepath.Join(root, fmt.Sprintf("dir%d", i)), depth-1, maxfile, maxdir); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func TestScanFile(t *testing.T) {
-	projRoot := os.Getenv("PMSS_PROJ_ROOT")
-	dbPath := fmt.Sprintf("%s/test/0ad.db", projRoot)
-	fmt.Printf("dbPath: '%s'\n", dbPath)
 
-	db := sigdb.New(dbPath)
-	err := db.Init()
+	testDir := "./testdata/gen1"
+
+	now := time.Now()
+
+	t.Logf("initializing test directory with random files")
+
+	err := initDirStructure(testDir, 5, 100, 10)
 	if err != nil {
 		t.Error(err)
 	}
 
-	c := sigchecker.New(db)
+	t.Logf("initDirStructure took %v", time.Since(now))
 
-	checkers := []interface{}{c}
+	s := scanner.New()
 
-	testFile := "0ad.appdata.xml"
-	testFilePath := fmt.Sprintf("%s/test/data/%s", projRoot, testFile)
+	results := make(chan client.FileFeatures, 1024)
 
-	r, err := scanFile(db, testFilePath, checkers)
-
-	if err != nil {
-		t.Error(err)
-	}
-
-	if r.Path != testFilePath {
-		t.Error("wrong path")
-	}
-
-	for _, checkResult := range r.CheckResults {
-		if checkResult.Signature != "Formbook" {
-			t.Error("wrong signature")
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	cnt := 0
+	go func() {
+		// pump results and count them
+		defer wg.Done()
+		for _ = range results {
+			cnt++
 		}
-	}
+	}()
 
-	if len(r.CheckResults) != 1 {
-		t.Error("wrong number of check results")
+	now = time.Now()
+	err = s.Scan(results, testDir)
+	if err != nil {
+		t.Error(err)
 	}
-
+	duration := time.Since(now)
+	wg.Wait()
+	t.Logf("Scan took %v, %v per file, %v files per second, %v file total", duration, time.Duration(int64(duration)/int64(cnt)), int64(cnt)/int64(duration/time.Second), cnt)
 }

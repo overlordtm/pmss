@@ -70,3 +70,6 @@ localdata/
 # protobuf generated files
 *.pb.go
 pmss
+
+# generated test folder
+pkg/scanner/testdata/gen*
