@@ -10,10 +10,11 @@ import (
 type Store struct {
 	opts options
 
-	packageRepository   *packageRepository
-	whitelistRepository *whitelistRepository
-	blacklistRepository *blacklistRepository
-	fileRepository      *fileRepository
+	packageRepository     *packageRepository
+	machineRepository     *machineRepository
+	knownFileRepository   *knownFileRepository
+	scannedFileRepository *scannedFileRepository
+	reportRunRepository   *reportRunRepository
 }
 
 type options struct {
@@ -42,16 +43,18 @@ func New(opts ...Option) (*Store, error) {
 	}
 
 	db.AutoMigrate(&Package{})
-	db.AutoMigrate(&WhitelistItem{})
-	db.AutoMigrate(&BlacklistItem{})
-	db.AutoMigrate(&File{})
+	db.AutoMigrate(&Machine{})
+	db.AutoMigrate(&KnownFile{})
+	db.AutoMigrate(&ScannedFile{})
+	db.AutoMigrate(&ReportRun{})
 
 	return &Store{
-		opts:                o,
-		packageRepository:   &packageRepository{db},
-		whitelistRepository: &whitelistRepository{db},
-		blacklistRepository: &blacklistRepository{db},
-		fileRepository:      &fileRepository{db},
+		opts:                  o,
+		packageRepository:     &packageRepository{db},
+		machineRepository:     &machineRepository{db},
+		knownFileRepository:   &knownFileRepository{db},
+		scannedFileRepository: &scannedFileRepository{db},
+		reportRunRepository:   &reportRunRepository{db},
 	}, nil
 }
 
@@ -59,10 +62,18 @@ func (ds *Store) Packages() *packageRepository {
 	return ds.packageRepository
 }
 
-func (ds *Store) Whitelist() *whitelistRepository {
-	return ds.whitelistRepository
+func (ds *Store) Machines() *machineRepository {
+	return ds.machineRepository
 }
 
-func (ds *Store) Blacklist() *blacklistRepository {
-	return nil
+func (ds *Store) KnownFiles() *knownFileRepository {
+	return ds.knownFileRepository
+}
+
+func (ds *Store) ScannedFiles() *scannedFileRepository {
+	return ds.scannedFileRepository
+}
+
+func (ds *Store) ReportRuns() *reportRunRepository {
+	return ds.reportRunRepository
 }

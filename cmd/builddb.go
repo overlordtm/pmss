@@ -60,7 +60,7 @@ var builddbCmd = &cobra.Command{
 					return fmt.Errorf("error while creating csv decoder: %v", err)
 				}
 
-				batch := make([]datastore.WhitelistItem, 0, 100)
+				batch := make([]datastore.KnownFile, 0, 100)
 				for {
 					item := debscraper.HashItem{}
 					err := decoder.Decode(&item)
@@ -71,22 +71,20 @@ var builddbCmd = &cobra.Command{
 						return fmt.Errorf("error while decoding csv: %v", err)
 					}
 
-					batch = append(batch, datastore.WhitelistItem{
+					batch = append(batch, datastore.KnownFile{
 						MD5:    item.MD5,
 						SHA1:   item.SHA1,
 						SHA256: item.SHA256,
 						Path:   item.Filename,
-						Meta: datastore.JSONField[datastore.WhitelistMeta]{Val: datastore.WhitelistMeta{
-							Package: item.Package,
-							Version: item.Version,
-							Size:    item.Size,
-							Owner:   item.Owner,
-							Group:   item.Group,
-							Mode:    uint32(item.Mode),
-						}},
+						Size:   item.Size,
+						Mode:   uint32(item.Mode),
+						//Version: item.Version,
+						//Owner:   item.Owner,
+						//Group:   item.Group,
+						//Package: item.Package,
 					})
 
-					err = ds.Whitelist().InsertBatch(batch)
+					err = ds.KnownFiles().InsertBatch(batch)
 					if err != nil {
 						return fmt.Errorf("error while adding to whitelist: %v", err)
 					}
