@@ -1,6 +1,7 @@
 package datastore
 
 import (
+	"github.com/google/uuid"
 	"github.com/overlordtm/pmss/pkg/hashvariant"
 	"gorm.io/gorm"
 )
@@ -35,7 +36,7 @@ type ScannedFile struct {
 	KnownMatch   KnownFile `gorm:"foreignKey:KnownMatchID"`
 
 	// Run info
-	ReportRunID uint
+	ReportRunID uuid.UUID
 	ReportRun   ReportRun `gorm:"foreignKey:ReportRunID"`
 
 	// Submitting Machine info
@@ -86,5 +87,5 @@ func (repo *scannedFileRepository) Insert(row ScannedFile) error {
 }
 
 func (repo *scannedFileRepository) InsertBatch(rows []ScannedFile) error {
-	return repo.db.CreateInBatches(&rows, 100).Error
+	return repo.db.CreateInBatches(&rows, 1000).Error
 }

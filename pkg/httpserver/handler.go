@@ -44,12 +44,8 @@ func (h *handler) SubmitReport(c *gin.Context) {
 		return
 	}
 
-	machine := &datastore.Machine{
-		Hostname: req.Hostname,
-	}
-
-	files := make([]datastore.ScannedFile, len(*req.Files))
-	for i, f := range *req.Files {
+	files := make([]datastore.ScannedFile, len(req.Files))
+	for i, f := range req.Files {
 		files[i] = datastore.ScannedFile{
 			MD5:    f.Md5,
 			SHA1:   f.Sha1,
@@ -63,14 +59,17 @@ func (h *handler) SubmitReport(c *gin.Context) {
 		}
 	}
 
-	//Save report to database
-	var run datastore.ReportRun
-	if err := h.Pmss.DoMachineReport(files, machine, &run); err != nil {
+	run, err := h.Pmss.DoMachineReport(&pmss.ScanReport{
+		Hostname:  req.Hostname,
+		Files:     files,
+		MachineId: req.MachineId,
+	})
+	if err != nil {
 		c.Error(fmt.Errorf("error: %s", err.Error()))
 		return
 	}
 
-	c.IndentedJSON(http.StatusOK, apitypes.NewReportResponse{
-		Id: run.Model.ID,
+	c.IndentedJSON(http.StatusCreated, apitypes.NewReportResponse{
+		Id: run.ID,
 	})
 }

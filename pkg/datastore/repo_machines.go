@@ -6,39 +6,38 @@ import (
 
 // Machine represents information about a machine on the network. It also contains info whether the machine is allowed to submit files.
 type Machine struct {
-	gorm.Model
-	Hostname  string `gorm:"type:char(255);uniqueIndex:;notnull"`
-	MachineId string `gorm:"type:char(255);uniqueIndex:;notnull"`
-	IPv4      string `gorm:"type:char(15);uniqueIndex:;notnull"`
-	IPv6      string `gorm:"type:char(39);uniqueIndex:;notnull"`
+	ID        uint    `gorm:"primarykey"`
+	Hostname  string  `gorm:"type:varchar(255);uniqueIndex:;notnull"`
+	MachineId string  `gorm:"type:varchar(255);uniqueIndex:;notnull"`
+	IPv4      *string `gorm:"type:char(15)"`
+	IPv6      *string `gorm:"type:char(39)"`
 }
 
 type machineRepository struct {
 	db *gorm.DB
 }
 
-func (repo *machineRepository) Create(m *Machine) error {
-	return repo.db.Create(m).Error
+func (repo *machineRepository) Create(machine *Machine) error {
+	return repo.db.Create(machine).Error
 }
 
-func (repo *machineRepository) FindByHostname(hostname string, dest *Machine) error {
-	return repo.db.Where("hostname = ?", hostname).First(dest).Error
+func (r *machineRepository) GetOrCreate(machine *Machine) error {
+	if err := r.db.FirstOrCreate(machine, "machine_id = ?", machine.MachineId).Error; err != nil {
+		return err
+	}
+	return nil
 }
 
-func (repo *machineRepository) FindByApiKey(api_key string, dest *Machine) error {
-	return repo.db.Where("api_key = ?", api_key).First(dest).Error
+func (repo *machineRepository) FindByHostname(hostname string, outMachine *Machine) error {
+	return repo.db.Find(outMachine, "hostname = ?", hostname).Error
 }
 
-func (repo *machineRepository) FindByIPv4(ipv4 string, dest *Machine) error {
-	return repo.db.Where("ipv4 = ?", ipv4).First(dest).Error
+func (repo *machineRepository) FindByIPv4(ipv4 string, outMachine *Machine) error {
+	return repo.db.Find(outMachine, "ipv4 = ?", ipv4).Error
 }
 
-func (repo *machineRepository) FindByIPv6(ipv6 string, dest *Machine) error {
-	return repo.db.Where("ipv6 = ?", ipv6).First(dest).Error
-}
-
-func (repo *machineRepository) DB() *gorm.DB {
-	return repo.db
+func (repo *machineRepository) FindByIPv6(ipv6 string, outMachine *Machine) error {
+	return repo.db.Find(outMachine, "ipv6 = ?", ipv6).Error
 }
 
 func (repo *machineRepository) Insert(row Machine) error {

@@ -50,7 +50,7 @@ paths:
             schema:
               $ref: '#/components/schemas/NewReportRequest'
       responses:
-        '200':
+        '201':
           description: Respons with report id
           content:
             application/json:
@@ -77,10 +77,16 @@ components:
           type: string
         machineId:
           type: string
-        Files:
+        files:
           type: array
           items:
             $ref: '#/components/schemas/File'
+        reportRunId:
+          type: string
+          format: uuid
+          x-go-type: uuid.UUID
+          x-go-type-import:
+            path: github.com/google/uuid
 
 
     File:
@@ -118,8 +124,11 @@ components:
         - id
       properties:
         id:
-          type: integer
-          format: uint
+          type: string
+          format: uuid
+          x-go-type: uuid.UUID
+          x-go-type-import:
+            path: github.com/google/uuid
 
 
     QueryResponse:

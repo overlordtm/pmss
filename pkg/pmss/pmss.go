@@ -5,6 +5,7 @@ import (
 
 	"github.com/overlordtm/pmss/pkg/datastore"
 	"github.com/overlordtm/pmss/pkg/hashvariant"
+	"gorm.io/gorm"
 )
 
 type Pmss struct {
@@ -64,20 +65,42 @@ func (p *Pmss) FindMachineByHostname(machineHostname string, machine *datastore.
 	return true, nil
 }
 
-func (p *Pmss) DoMachineReport(files []datastore.ScannedFile, machine *datastore.Machine, reportRun *datastore.ReportRun) error {
+func (p *Pmss) DoMachineReport(scanReport *ScanReport) (*datastore.ReportRun, error) {
 
-	if err := p.Data.ReportRuns().CreateNew(reportRun); err != nil {
-		return err
+	var reportRun *datastore.ReportRun
+
+	if scanReport.ScanRunId != nil {
+		if err := p.Data.ReportRuns().FindByID(*scanReport.ScanRunId, reportRun); err != nil && err != gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("failed to find report run: %v", err)
+		}
 	}
 
-	for _, d := range files {
-		d.ReportRun = *reportRun
-		d.Machine = *machine
+	if reportRun == nil {
+		reportRun = &datastore.ReportRun{}
+		if err := p.Data.ReportRuns().CreateNew(reportRun); err != nil {
+			return nil, fmt.Errorf("failed to create new report run: %v", err)
+		}
 	}
 
-	if err := p.Data.ScannedFiles().InsertBatch(files); err != nil {
-		return err
+	var machine *datastore.Machine = &datastore.Machine{
+		MachineId: scanReport.MachineId,
 	}
 
-	return nil
+	if err := p.Data.Machines().GetOrCreate(machine); err != nil {
+		return nil, fmt.Errorf("failed to get or create machine: %v", err)
+	}
+
+	fmt.Printf("machine %#+v\n", machine)
+
+	for i, _ := range scanReport.Files {
+		scanReport.Files[i].ReportRunID = reportRun.ID
+		scanReport.Files[i].MachineID = machine.ID
+	}
+
+	if err := p.Data.ScannedFiles().InsertBatch(scanReport.Files); err != nil {
+
+		return nil, fmt.Errorf("failed to insert scanned files: %v", err)
+	}
+
+	return reportRun, nil
 }

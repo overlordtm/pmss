@@ -3,7 +3,9 @@ package pmss
 import (
 	"context"
 	"fmt"
+	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/overlordtm/pmss/internal/apiclient"
 	"github.com/overlordtm/pmss/pkg/client"
 	"github.com/overlordtm/pmss/pkg/scanner"
@@ -47,20 +49,31 @@ var scanCmd = &cobra.Command{
 
 		files := make([]apiclient.File, 0, batchSize)
 
+		var reportRunId *uuid.UUID = nil
+
 		for f := range ch {
 			files = append(files, f)
 
 			if len(files) == batchSize {
 				logrus.WithField("files", len(files)).Info("sending batch")
 				response, err := client.SubmitFiles(ctx, apiclient.NewReportRequest{
-					Files:     &files,
-					Hostname:  "test",
-					MachineId: "test",
+					Files:       files,
+					Hostname:    "test",
+					MachineId:   "test",
+					ReportRunId: reportRunId,
 				})
 				if err != nil {
 					logrus.WithError(err).Error("failed to send files")
 				}
-				fmt.Println(response.Status())
+
+				if response.StatusCode() == http.StatusCreated {
+					// copy pointer value
+					var tmpUuid = response.JSON201.Id
+					reportRunId = &tmpUuid
+
+				} else {
+					return fmt.Errorf("failed to send files: %#+v", response.JSONDefault)
+				}
 				files = files[:0]
 			}
 
