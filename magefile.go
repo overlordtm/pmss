@@ -40,6 +40,10 @@ func Generate() error {
 	return goCmd("generate", "./...")
 }
 
+func Test() error {
+	return goCmd("test", "./...")
+}
+
 func goCmd(args ...string) error {
 	cmd := exec.Command("go", args...)
 	cmd.Stdout = os.Stdout

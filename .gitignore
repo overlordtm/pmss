@@ -69,7 +69,6 @@ localdata/
 
 # protobuf generated files
 *.pb.go
-pmss
 
 # generated go code
 *.gen.go
