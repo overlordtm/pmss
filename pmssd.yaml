@@ -1,0 +1,2 @@
+db:
+  url: "mysql://pmss:pmss@tcp(mariadb:3306)/pmss"

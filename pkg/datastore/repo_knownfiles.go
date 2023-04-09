@@ -5,29 +5,30 @@ import (
 	"gorm.io/gorm"
 )
 
+type FileStatus byte
+
+const (
+	FileStatusMalicious FileStatus = 1 << iota
+	FileStatusSafe
+)
+
 type KnownFile struct {
-	gorm.Model
+	*gorm.Model
 	// Path, Hashes, Indexed
-	Path   string `gorm:"varchar(1024);index:path_sha1;notnull"`
-	SHA1   string `gorm:"type:char(40);index:path_sha1;notnull"`
-	SHA256 string `gorm:"type:char(64);notnull"`
-	MD5    string `gorm:"type:char(32);notnull"`
+	Path   *string `gorm:"varchar(1024);index:path"`
+	SHA1   string  `gorm:"type:char(40);index:path_sha1;notnull"`
+	SHA256 string  `gorm:"type:char(64);notnull"`
+	MD5    string  `gorm:"type:char(32);notnull"`
 
 	// File info
-	Size     int64  `gorm:"notnull;default:null"`
-	Mode     uint32 `gorm:"notnull;default:null"`
-	MimeType string `gorm:"type:char(255);notnull;default:null"`
-
-	// File times
-	Mtime uint64 `gorm:"type:timestamp"`
-	Atime uint64 `gorm:"type:timestamp"`
-	Ctime uint64 `gorm:"type:timestamp"`
+	Size     *int64  `gorm:"default:null"`
+	MimeType *string `gorm:"default:null"`
 
 	// Wether was scraped or voted for
 	FromDeb bool `gorm:"notnull;default:false"`
 
-	// Is it malicious
-	IsSafe bool `gorm:"notnull"`
+	// File Status
+	Status FileStatus `gorm:"notnull;default:1"`
 }
 
 type knownFileRepository struct {

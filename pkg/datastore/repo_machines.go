@@ -7,15 +7,18 @@ import (
 // Machine represents information about a machine on the network. It also contains info whether the machine is allowed to submit files.
 type Machine struct {
 	gorm.Model
-	Hostname    string `gorm:"type:char(255);uniqueIndex:;notnull"`
-	IPv4        string `gorm:"type:char(15);uniqueIndex:;notnull"`
-	IPv6        string `gorm:"type:char(39);uniqueIndex:;notnull"`
-	ApiKey      string `gorm:"type:char(64);uniqueIndex:;notnull"`
-	AllowSubmit bool   `gorm:"type:bool;default:true;notnull"`
+	Hostname  string `gorm:"type:char(255);uniqueIndex:;notnull"`
+	MachineId string `gorm:"type:char(255);uniqueIndex:;notnull"`
+	IPv4      string `gorm:"type:char(15);uniqueIndex:;notnull"`
+	IPv6      string `gorm:"type:char(39);uniqueIndex:;notnull"`
 }
 
 type machineRepository struct {
 	db *gorm.DB
+}
+
+func (repo *machineRepository) Create(m *Machine) error {
+	return repo.db.Create(m).Error
 }
 
 func (repo *machineRepository) FindByHostname(hostname string, dest *Machine) error {

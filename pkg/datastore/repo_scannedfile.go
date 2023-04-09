@@ -12,19 +12,19 @@ type ScannedFile struct {
 	Path string `gorm:"type:varchar(1024);notnull"`
 
 	// Hashes
-	SHA1   string `gorm:"type:char(40);check:at_least_one,(sha1 IS NOT NULL) OR (sha256 IS NOT NULL) OR (md5 IS NOT NULL)"`
-	SHA256 string `gorm:"type:char(64)"`
-	MD5    string `gorm:"type:char(32)"`
+	SHA1   *string `gorm:"type:char(40);check:at_least_one,(sha1 IS NOT NULL) OR (sha256 IS NOT NULL) OR (md5 IS NOT NULL)"`
+	SHA256 *string `gorm:"type:char(64)"`
+	MD5    *string `gorm:"type:char(32)"`
 
 	// File info
-	Size     uint64 `gorm:"notnull;default:000"`
-	Mode     uint32 `gorm:"notnull;default:000"`
+	Size     int64  `gorm:"notnull;default:-1"`
+	Mode     uint32 `gorm:"notnull;default:4294967295"`
 	MimeType string `gorm:"type:varchar(255);notnull"`
 
 	// File times
-	Mtime uint64 `gorm:"type:timestamp"`
-	Atime uint64 `gorm:"type:timestamp"`
-	Ctime uint64 `gorm:"type:timestamp"`
+	Mtime *int64 `gorm:"type:long"`
+	Atime *int64 `gorm:"type:long"`
+	Ctime *int64 `gorm:"type:long"`
 
 	// Users
 	Owner string `gorm:"type:varchar(255);notnull"`

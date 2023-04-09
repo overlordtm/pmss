@@ -9,6 +9,7 @@ import (
 
 	"errors"
 
+	"github.com/overlordtm/pmss/internal/apiclient"
 	"github.com/overlordtm/pmss/pkg/client"
 	"github.com/overlordtm/pmss/pkg/multihasher"
 )
@@ -30,7 +31,7 @@ func New() *Scanner {
 }
 
 // Scan scans the given paths and returns the results. Path can be either directory or file
-func (s *Scanner) Scan(results chan client.FileFeatures, paths ...string) (err error) {
+func (s *Scanner) Scan(results chan apiclient.File, paths ...string) (err error) {
 
 	wg := sync.WaitGroup{}
 
@@ -66,7 +67,7 @@ func (s *Scanner) Scan(results chan client.FileFeatures, paths ...string) (err e
 
 }
 
-func (s *Scanner) scanDir(results chan client.FileFeatures, dir string) (err error) {
+func (s *Scanner) scanDir(results chan apiclient.File, dir string) (err error) {
 
 	queue := make(chan scanItem, 1024)
 
@@ -110,7 +111,7 @@ func (s *Scanner) scanDir(results chan client.FileFeatures, dir string) (err err
 	return err
 }
 
-func (s *Scanner) scanFile(path string, info os.FileInfo) (r client.FileFeatures, err error) {
+func (s *Scanner) scanFile(path string, info os.FileInfo) (r apiclient.File, err error) {
 
 	f, err := os.OpenFile(path, os.O_RDONLY, 0644)
 	if err != nil {
@@ -123,13 +124,13 @@ func (s *Scanner) scanFile(path string, info os.FileInfo) (r client.FileFeatures
 		return r, fmt.Errorf("error while hashing file: %v", err)
 	}
 
-	return client.FileFeatures{
+	return apiclient.File{
 		Path:     path,
 		Size:     info.Size(),
-		MD5:      h.MD5,
-		SHA1:     h.SHA1,
-		SHA256:   h.SHA256,
-		FileMode: info.Mode(),
+		Md5:      &h.MD5,
+		Sha1:     &h.SHA1,
+		Sha256:   &h.SHA256,
+		FileMode: uint32(info.Mode()),
 		Mtime:    info.ModTime().Unix(),
 	}, nil
 

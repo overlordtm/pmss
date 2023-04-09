@@ -34,45 +34,48 @@ func New(dbPath string) (*Pmss, error) {
 	}, nil
 }
 
-func (p *Pmss) FindByHash(hash string) (malformed bool, r *HashSearchResult, err error) {
+func (p *Pmss) FindByHash(hash string) (r *HashSearchResult, err error) {
 	var files []string
-	t := hashvariant.HashVariant("unknown")
-	err = p.Data.KnownFiles().FindAllPathsByHash(hash, &files, &t)
-	malformed = false
+
+	t := hashvariant.DetectHashVariant(hash)
+
 	if t == hashvariant.Unknown {
-		malformed = true
-		t = hashvariant.HashVariant("unknown")
+		return nil, fmt.Errorf("unknown hash variant")
 	}
-	r = &HashSearchResult{
+
+	err = p.Data.KnownFiles().FindAllPathsByHash(hash, &files, &t)
+	if err != nil {
+		return nil, err
+	}
+	return &HashSearchResult{
 		Hash:        hash,
 		HashVariant: t,
 		KnownFiles:  files,
-	}
-	return
+	}, nil
 }
 
-func (p *Pmss) FindMachineByHostname(machineHostname, machineApiKey string, machine *datastore.Machine) (bool, error) {
+func (p *Pmss) FindMachineByHostname(machineHostname string, machine *datastore.Machine) (bool, error) {
 	if err := p.Data.Machines().FindByHostname(machineHostname, machine); err != nil {
 		return false, err
 	}
-	if machine.ApiKey != machineApiKey {
-		return false, nil
-	}
+	// if machine.ApiKey != machineApiKey {
+	// 	return false, nil
+	// }
 	return true, nil
 }
 
-func (p *Pmss) DoMachineReport(reports []datastore.ScannedFile, machine *datastore.Machine, dest *datastore.ReportRun) error {
+func (p *Pmss) DoMachineReport(files []datastore.ScannedFile, machine *datastore.Machine, reportRun *datastore.ReportRun) error {
 
-	if err := p.Data.ReportRuns().CreateNew(dest); err != nil {
+	if err := p.Data.ReportRuns().CreateNew(reportRun); err != nil {
 		return err
 	}
 
-	for _, d := range reports {
-		d.ReportRun = *dest
+	for _, d := range files {
+		d.ReportRun = *reportRun
 		d.Machine = *machine
 	}
 
-	if err := p.Data.ScannedFiles().InsertBatch(reports); err != nil {
+	if err := p.Data.ScannedFiles().InsertBatch(files); err != nil {
 		return err
 	}
 

@@ -1,0 +1,143 @@
+openapi: "3.0.0"
+info:
+  version: 1.0.0
+  title: PMSS Swagger
+  description: TBD
+  termsOfService: TBD
+  # contact:
+  #   name: Swagger API Team
+  #   email: apiteam@swagger.io
+  #   url: http://swagger.io
+  # license:
+  #   name: Apache 2.0
+  #   url: https://www.apache.org/licenses/LICENSE-2.0.html
+servers:
+  - url: https://pmss.ls.rtfm.so/api/v1
+paths:
+  /hash/{hash}:
+    get:
+      description: Query by hash
+      operationId: queryByHash
+      parameters:
+        - name: hash
+          in: path
+          description: Hash to query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Respons with report id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryResponse'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /report:
+    post:
+      description: Submits report to PMSS
+      operationId: submitReport
+      requestBody:
+        description: Scan report from the machine
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewReportRequest'
+      responses:
+        '200':
+          description: Respons with report id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NewReportResponse'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+
+    NewReportRequest:
+      type: object
+      required:
+        - hostname
+        - machineId
+        - files
+      properties:
+        hostname:
+          type: string
+        machineId:
+          type: string
+        Files:
+          type: array
+          items:
+            $ref: '#/components/schemas/File'
+
+
+    File:
+      type: object
+      required:
+        - path
+        - size
+        - fileMode
+        - mtime
+      properties:
+        path:
+          type: string
+        md5:
+          type: string
+        sha1:
+          type: string
+        sha256:
+          type: string
+        size:
+          type: integer
+          format: int64
+        fileMode:
+          type: integer
+          format: uint32
+        mtime:
+          type: integer
+          format: int64
+        ctime:
+          type: integer
+          format: int64
+
+    NewReportResponse:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: integer
+          format: uint
+
+
+    QueryResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string

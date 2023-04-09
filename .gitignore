@@ -71,5 +71,12 @@ localdata/
 *.pb.go
 pmss
 
+# generated go code
+*.gen.go
+
 # generated test folder
 pkg/scanner/testdata/gen*
+
+# binaries
+bin/
+!bin/.gitkeep
