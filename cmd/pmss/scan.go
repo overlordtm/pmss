@@ -79,11 +79,10 @@ var scanCmd = &cobra.Command{
 				}
 
 				if response.StatusCode() == http.StatusCreated {
-					fmt.Printf("report run id: %s\n", reportRunId)
-					// copy pointer value
-					var tmpUuid = response.JSON201.Id
-					reportRunId = &tmpUuid
-
+					reportRunId = &response.JSON201.Id
+					for _, file := range response.JSON201.Files {
+						logrus.WithField("file", file).Info("file scanned")
+					}
 				} else {
 					return fmt.Errorf("failed to send files: %#+v", response.JSONDefault)
 				}

@@ -11,3 +11,11 @@ func Uint32Ptr(i uint32) *uint32 {
 func StringPtr(s string) *string {
 	return &s
 }
+
+func ErrToStrPtr(err error) *string {
+	if err == nil {
+		return nil
+	}
+	s := err.Error()
+	return &s
+}

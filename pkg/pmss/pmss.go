@@ -115,9 +115,13 @@ func (p *Pmss) DoMachineReport(scanReport *ScanReport) (*datastore.ReportRun, er
 	return reportRun, nil
 }
 
-func (p *Pmss) ProcessSacannedFiles(scannedFiles []datastore.ScannedFile) error {
-
-	// datastore.KnownFiles().FindByHash()
-	return nil
-
+func (p *Pmss) ScanFile(scannedFile *datastore.ScannedFile) (*datastore.KnownFile, error) {
+	knownFile := &datastore.KnownFile{
+		Status: datastore.FileStatusUnknown,
+	}
+	err := datastore.KnownFiles().FindByScannedFile(scannedFile, knownFile)(p.db)
+	if err != nil {
+		return knownFile, err
+	}
+	return knownFile, nil
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/overlordtm/pmss/internal/apiserver"
+	"github.com/overlordtm/pmss/internal/utils"
 	"github.com/overlordtm/pmss/pkg/apitypes"
 	"github.com/overlordtm/pmss/pkg/datastore"
 	"github.com/overlordtm/pmss/pkg/hashtype"
@@ -71,6 +72,7 @@ func (h *handler) SubmitReport(c *gin.Context) {
 	}
 
 	files := make([]datastore.ScannedFile, len(req.Files))
+	reportFiles := make([]apitypes.ReportFile, len(req.Files))
 	for i, f := range req.Files {
 		files[i] = datastore.ScannedFile{
 			MD5:    f.Md5,
@@ -82,6 +84,14 @@ func (h *handler) SubmitReport(c *gin.Context) {
 
 			Size: f.Size,
 			Mode: f.FileMode,
+		}
+
+		knownFile, err := h.Pmss.ScanFile(&files[i])
+
+		reportFiles[i] = apitypes.ReportFile{
+			Path:   f.Path,
+			Status: knownFile.Status,
+			Error:  utils.ErrToStrPtr(err),
 		}
 	}
 
@@ -97,6 +107,7 @@ func (h *handler) SubmitReport(c *gin.Context) {
 	}
 
 	c.IndentedJSON(http.StatusCreated, apitypes.NewReportResponse{
-		Id: run.ID,
+		Id:    run.ID,
+		Files: reportFiles,
 	})
 }

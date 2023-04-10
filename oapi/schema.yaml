@@ -158,7 +158,8 @@ components:
           x-go-type: datastore.FileStatus
           x-go-type-import:
             path: github.com/overlordtm/pmss/pkg/datastore
-
+        error:
+          type: string
 
     HashQueryResponse:
       type: object

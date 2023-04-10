@@ -56,6 +56,7 @@ type NewReportResponse struct {
 
 // ReportFile defines model for ReportFile.
 type ReportFile struct {
+	Error  *string              `json:"error,omitempty"`
 	Path   string               `json:"path"`
 	Status datastore.FileStatus `json:"status"`
 }
