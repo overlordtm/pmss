@@ -19,3 +19,11 @@ func ParseDBUrl(dbUrl string) (dialector gorm.Dialector, err error) {
 		return nil, fmt.Errorf("unsupported database scheme: %s", dbUrl)
 	}
 }
+
+func MustParseDBUrl(dbUrl string) gorm.Dialector {
+	dialector, err := ParseDBUrl(dbUrl)
+	if err != nil {
+		panic(err)
+	}
+	return dialector
+}

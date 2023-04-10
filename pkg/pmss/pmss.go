@@ -114,3 +114,10 @@ func (p *Pmss) DoMachineReport(scanReport *ScanReport) (*datastore.ReportRun, er
 
 	return reportRun, nil
 }
+
+func (p *Pmss) ProcessSacannedFiles(scannedFiles []datastore.ScannedFile) error {
+
+	// datastore.KnownFiles().FindByHash()
+	return nil
+
+}

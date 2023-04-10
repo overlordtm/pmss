@@ -39,8 +39,9 @@ func TestHashRetrival(t *testing.T) {
 		},
 	}
 
-	db := datastore.MustOpen(testDbUrl)
-	datastore.MustAutoMigrate(db)
+	tx := datastore.MustOpen(testDbUrl).Begin()
+	defer tx.Rollback()
+	datastore.MustAutoMigrate(tx)
 
 	err := datastore.KnownFiles().Create(datastore.KnownFile{
 		MD5:    utils.StringPtr("d3b07384d113edec49eaa6238ad5ff00"),
@@ -48,7 +49,7 @@ func TestHashRetrival(t *testing.T) {
 		SHA256: utils.StringPtr("d3b07384d113edec49eaa6238ad5ff00d3b07384d113edec49eaa6238ad5ff00"),
 		Size:   utils.Int64Ptr(100),
 		Status: datastore.FileStatusMalicious,
-	})(db)
+	})(tx)
 
 	if err != nil {
 		t.Fatalf("failed to create test data: %v", err)

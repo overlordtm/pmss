@@ -50,7 +50,14 @@ type NewReportRequest struct {
 
 // NewReportResponse defines model for NewReportResponse.
 type NewReportResponse struct {
-	Id uuid.UUID `json:"id"`
+	Files []ReportFile `json:"files"`
+	Id    uuid.UUID    `json:"id"`
+}
+
+// ReportFile defines model for ReportFile.
+type ReportFile struct {
+	Path   string               `json:"path"`
+	Status datastore.FileStatus `json:"status"`
 }
 
 // SubmitReportJSONRequestBody defines body for SubmitReport for application/json ContentType.

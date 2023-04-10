@@ -1,7 +1,10 @@
+// go:generate go run internal/gen/fixturegen/main.go
+
 package datastore
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/overlordtm/pmss/pkg/hashtype"
 	"gorm.io/gorm"
@@ -10,13 +13,16 @@ import (
 type FileStatus byte
 
 const (
-	FileStatusMalicious FileStatus = 1 << iota
-	FileStatusSafe
-	FileStatusUnknown
+	FileStatusUnknown   FileStatus = 0
+	FileStatusSafe      FileStatus = 1
+	FileStatusMalicious FileStatus = 255
 )
 
 type KnownFile struct {
-	*gorm.Model
+	ID        uint `gorm:"primarykey"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+
 	// Path, Hashes, Indexed
 	// Path   *string `gorm:"varchar(1024);index:path"`
 	SHA1   *string `gorm:"type:char(40)"`
@@ -31,7 +37,7 @@ type KnownFile struct {
 	FromDeb bool `gorm:"notnull;default:false"`
 
 	// File Status
-	Status FileStatus `gorm:"notnull;default:1"`
+	Status FileStatus `gorm:"notnull;default:0"`
 }
 
 func (f *KnownFile) BeforeCreate(tx *gorm.DB) (err error) {
@@ -44,6 +50,12 @@ func (f *KnownFile) BeforeCreate(tx *gorm.DB) (err error) {
 }
 
 type knownFileRepository struct {
+}
+
+func (*knownFileRepository) All(all []KnownFile) DbOp {
+	return func(d *gorm.DB) error {
+		return d.Model(&KnownFile{}).Find(&all).Error
+	}
 }
 
 func (*knownFileRepository) FindByHash(hash string, dest *KnownFile) DbOp {
@@ -62,6 +74,24 @@ func (*knownFileRepository) FindByHash(hash string, dest *KnownFile) DbOp {
 			d.AddError(err)
 			return err
 		}
+	}
+}
+
+func (*knownFileRepository) FindByScannedFile(scannedFile *ScannedFile, dest *KnownFile) DbOp {
+	return func(d *gorm.DB) error {
+		q := d.Model(&KnownFile{})
+
+		if scannedFile.SHA1 != nil {
+			q = q.Or("sha1 = ?", scannedFile.SHA1)
+		}
+		if scannedFile.SHA256 != nil {
+			q = q.Or("sha256 = ?", scannedFile.SHA256)
+		}
+		if scannedFile.MD5 != nil {
+			q = q.Or("md5 = ?", scannedFile.MD5)
+		}
+		q.Statement.RaiseErrorOnNotFound = true
+		return q.Limit(1).Order("status DESC").Find(dest).Error
 	}
 }
 

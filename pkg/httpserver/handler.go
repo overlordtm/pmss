@@ -96,8 +96,6 @@ func (h *handler) SubmitReport(c *gin.Context) {
 		return
 	}
 
-	fmt.Println("Report created", run.ID)
-
 	c.IndentedJSON(http.StatusCreated, apitypes.NewReportResponse{
 		Id: run.ID,
 	})

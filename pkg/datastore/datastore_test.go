@@ -1,16 +1,22 @@
 package datastore_test
 
 import (
+	"os"
 	"testing"
 
 	"github.com/overlordtm/pmss/internal/utils"
 	"github.com/overlordtm/pmss/pkg/datastore"
-	"gorm.io/gorm"
 )
 
-const (
-	testDbUrl = "mysql://pmss:pmss@tcp(mariadb:3306)/test_pmss?parseTime=true"
+var (
+	testDbUrl string
 )
+
+func TestMain(m *testing.M) {
+	testDbUrl = utils.EnvOrDefault("PMSS_TEST_DB_URL", "mysql://pmss:pmss@tcp(mariadb:3306)/test_pmss?parseTime=true")
+	exitCode := m.Run()
+	os.Exit(exitCode)
+}
 
 func TestDatastore(t *testing.T) {
 	testCases := []struct {
@@ -25,19 +31,9 @@ func TestDatastore(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.testName, func(t *testing.T) {
-
-			dialector, err := utils.ParseDBUrl(testCase.uri)
-			if err != nil {
-				t.Error(err)
-				return
-			}
-
-			db, err := gorm.Open(dialector, &gorm.Config{})
-			if err != nil {
-				t.Fatalf("error while opening database: %v", err)
-			}
-
-			datastore.AutoMigrate(db)
+			tx := datastore.MustOpen(testCase.uri).Begin()
+			datastore.AutoMigrate(tx)
+			defer tx.Rollback()
 
 			rows := []datastore.Machine{
 				{
@@ -60,17 +56,17 @@ func TestDatastore(t *testing.T) {
 				},
 			}
 
-			if err := datastore.Machines().CreateInBatches(rows)(db); err != nil {
+			if err := datastore.Machines().CreateInBatches(rows)(tx); err != nil {
 				t.Error(err)
 				return
 			}
 			var machine datastore.Machine
-			if err := datastore.Machines().FindByIPv4("192.168.1.2", &machine)(db); err != nil {
+			if err := datastore.Machines().FindByIPv4("192.168.1.2", &machine)(tx); err != nil {
 				t.Error(err)
 				return
 			}
 			var reportRun datastore.ReportRun
-			if err := datastore.ReportRuns().Create(&reportRun)(db); err != nil {
+			if err := datastore.ReportRuns().Create(&reportRun)(tx); err != nil {
 				t.Error(err)
 				return
 			}
@@ -86,7 +82,7 @@ func TestDatastore(t *testing.T) {
 					Group:     "root",
 				},
 			}
-			if err := datastore.ScannedFiles().CreateInBatches(scannedFiles)(db); err != nil {
+			if err := datastore.ScannedFiles().CreateInBatches(scannedFiles)(tx); err != nil {
 				t.Error(err)
 				return
 			}

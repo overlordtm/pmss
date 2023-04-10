@@ -1,13 +1,18 @@
 package datastore
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/overlordtm/pmss/pkg/hashtype"
 	"gorm.io/gorm"
 )
 
 type ScannedFile struct {
-	gorm.Model
+	ID        uint `gorm:"primarykey"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
 
 	// Path
 	Path string `gorm:"type:varchar(1024);notnull"`
