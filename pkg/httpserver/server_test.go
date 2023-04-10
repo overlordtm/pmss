@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const dbUrl = "mysql://pmss:pmss@tcp(mariadb:3306)/pmss?parseTime=true"
+const testDbUrl = "mysql://pmss:pmss@tcp(mariadb:3306)/test_pmss?parseTime=true"
 
 func TestHashRetrival(t *testing.T) {
 	testCases := []struct {
@@ -30,7 +30,7 @@ func TestHashRetrival(t *testing.T) {
 		},
 	}
 
-	db := datastore.MustOpen(dbUrl)
+	db := datastore.MustOpen(testDbUrl)
 	datastore.MustAutoMigrate(db)
 
 	err := datastore.KnownFiles().Create(datastore.KnownFile{
@@ -46,7 +46,7 @@ func TestHashRetrival(t *testing.T) {
 		return
 	}
 
-	pmss, err := pmss.New(pmss.WithDbUrl(dbUrl))
+	pmss, err := pmss.New(pmss.WithDbUrl(testDbUrl))
 
 	listenAddr := ":0"
 	if err != nil {
@@ -69,7 +69,7 @@ func TestHashRetrival(t *testing.T) {
 
 func TestReporting(t *testing.T) {
 	t.SkipNow()
-	pmss, err := pmss.New(pmss.WithDbUrl("mysql://pmss:pmss@tcp(mariadb:3306)/pmss?parseTime=true"))
+	pmss, err := pmss.New(pmss.WithDbUrl(testDbUrl))
 	listenAddr := ":0"
 	if err != nil {
 		t.Fatalf("failed to initialize PMSS: %v", err)

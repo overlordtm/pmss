@@ -2,7 +2,6 @@ package httpserver
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -18,16 +17,28 @@ func WithListenAddr(addr string) Option {
 	}
 }
 
+func WithAuthHandler(authHandler authHandler) Option {
+	return func(o *Server) {
+		o.authHandler = authHandler
+	}
+}
+
+type authHandler interface {
+	IsAuthorized(ctx context.Context, req *http.Request) (bool, error)
+}
+
 type Server struct {
-	listenAddr string
-	pmss       *pmss.Pmss
-	httpSrv    *http.Server
+	listenAddr  string
+	authHandler authHandler
+	pmss        *pmss.Pmss
+	httpSrv     *http.Server
 }
 
 func New(ctx context.Context, pmss *pmss.Pmss, opts ...Option) *Server {
 
 	srv := &Server{
-		listenAddr: ":8080",
+		listenAddr:  ":8080",
+		authHandler: staticTokenAuthHandler{"token123"},
 	}
 
 	ginEngine := apiserver.RegisterHandlersWithOptions(gin.Default(), &handler{pmss}, apiserver.GinServerOptions{
@@ -52,13 +63,15 @@ func New(ctx context.Context, pmss *pmss.Pmss, opts ...Option) *Server {
 
 func (s *Server) AuthMiddlerware() apiserver.MiddlewareFunc {
 	return func(c *gin.Context) {
-		authHdr := c.Request.Header.Get("Authorization")
-		if authHdr == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "no auth header"})
+		ok, err := s.authHandler.IsAuthorized(c, c.Request)
+		if err != nil {
+			c.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
-
-		fmt.Println("auth header:", authHdr)
+		if !ok {
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
 		c.Next()
 	}
 }

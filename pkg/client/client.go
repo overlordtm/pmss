@@ -37,7 +37,7 @@ func New(apiUrl string) (*HTTPClient, error) {
 
 func (c *HTTPClient) authorizeReq() apiclient.RequestEditorFn {
 	return func(ctx context.Context, req *http.Request) error {
-		req.Header.Set("Authorization", "Bearer dummy")
+		req.Header.Set("Authorization", "Token token123")
 		return nil
 	}
 }

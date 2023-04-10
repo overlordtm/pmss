@@ -9,6 +9,18 @@ jobs:
       GOPATH: /home/runner/go
       # SEt default branch to clone from to main
 
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: test_pmss
+          MYSQL_USER: pmss
+          MYSQL_PASSWORD: pmss
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -21,11 +33,8 @@ jobs:
       - name: Checkout submodules
         run: git submodule update --init --recursive
       
-      - name: Print Go version
-        run: go version
-
-      - name: Create test dir
-        run: mkdir -p $PMSS_PROJ_ROOT/test/data
+      - name: generate code
+        run: go run mage.go bootstrap
       
       - name: Install dependencies
         run: go mod download

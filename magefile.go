@@ -3,6 +3,7 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 
@@ -34,6 +35,13 @@ func (Build) Server() error {
 
 func goBuild(file, outFile string) error {
 	return goCmd("build", "-o", outFile, file)
+}
+
+func Bootstrap() error {
+	var err error
+	err = errors.Join(err, goCmd("mod", "download"))
+	err = errors.Join(err, Generate())
+	return err
 }
 
 func Generate() error {
