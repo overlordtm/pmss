@@ -17,19 +17,15 @@ func WithListenAddr(addr string) Option {
 	}
 }
 
-func WithAuthHandler(authHandler authHandler) Option {
+func WithAuthHandler(authHandler apiserver.MiddlewareFunc) Option {
 	return func(o *Server) {
 		o.authHandler = authHandler
 	}
 }
 
-type authHandler interface {
-	IsAuthorized(ctx context.Context, req *http.Request) (bool, error)
-}
-
 type Server struct {
 	listenAddr  string
-	authHandler authHandler
+	authHandler apiserver.MiddlewareFunc
 	pmss        *pmss.Pmss
 	httpSrv     *http.Server
 }
@@ -37,13 +33,15 @@ type Server struct {
 func New(ctx context.Context, pmss *pmss.Pmss, opts ...Option) *Server {
 
 	srv := &Server{
-		listenAddr:  ":8080",
-		authHandler: staticTokenAuthHandler{"token123"},
+		listenAddr: ":8080",
+		authHandler: func(c *gin.Context) {
+			c.Next()
+		},
 	}
 
 	ginEngine := apiserver.RegisterHandlersWithOptions(gin.Default(), &handler{pmss}, apiserver.GinServerOptions{
 		BaseURL:     "/api/v1",
-		Middlewares: []apiserver.MiddlewareFunc{srv.AuthMiddlerware()},
+		Middlewares: []apiserver.MiddlewareFunc{srv.authHandler},
 	},
 	)
 
@@ -59,21 +57,6 @@ func New(ctx context.Context, pmss *pmss.Pmss, opts ...Option) *Server {
 	}
 
 	return srv
-}
-
-func (s *Server) AuthMiddlerware() apiserver.MiddlewareFunc {
-	return func(c *gin.Context) {
-		ok, err := s.authHandler.IsAuthorized(c, c.Request)
-		if err != nil {
-			c.AbortWithError(http.StatusInternalServerError, err)
-			return
-		}
-		if !ok {
-			c.AbortWithStatus(http.StatusUnauthorized)
-			return
-		}
-		c.Next()
-	}
 }
 
 func (s *Server) Start() error {
