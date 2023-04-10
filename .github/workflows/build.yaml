@@ -1,0 +1,35 @@
+name: Build PMSS
+
+on:
+  - release
+  - workflow_dispatch
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: 1.20.1
+
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Checkout submodules
+        run: git submodule update --init --recursive
+      
+      - name: Bootstrap
+        run: go run mage.go bootstrap
+
+      - name: Run tests
+        run: go run mage.go build:client
