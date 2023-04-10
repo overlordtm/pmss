@@ -1,8 +1,6 @@
 package datastore
 
 import (
-	"time"
-
 	"gorm.io/gorm"
 )
 
@@ -15,7 +13,7 @@ type Package struct {
 	Architecture string
 	Filename     string
 	Distro       string
-	ScrapedAt    *time.Time
+	// ScrapedAt    *time.Time
 }
 
 type packageRepository struct {

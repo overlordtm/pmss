@@ -89,11 +89,14 @@ func (h *handler) SubmitReport(c *gin.Context) {
 		Hostname:  req.Hostname,
 		Files:     files,
 		MachineId: req.MachineId,
+		ScanRunId: req.ReportRunId,
 	})
 	if err != nil {
 		c.Error(fmt.Errorf("error: %s", err.Error()))
 		return
 	}
+
+	fmt.Println("Report created", run.ID)
 
 	c.IndentedJSON(http.StatusCreated, apitypes.NewReportResponse{
 		Id: run.ID,

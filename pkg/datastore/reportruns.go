@@ -18,7 +18,7 @@ type reportRunRepository struct{}
 
 func (*reportRunRepository) FindByID(id uuid.UUID, dest *ReportRun) DbOp {
 	return func(d *gorm.DB) error {
-		return d.First(dest, id).Error
+		return d.Where("id = ?", id).First(dest).Error
 	}
 }
 

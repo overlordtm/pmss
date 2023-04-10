@@ -77,21 +77,15 @@ func (p *Pmss) DoMachineReport(scanReport *ScanReport) (*datastore.ReportRun, er
 		}
 	}()
 
-	var reportRun *datastore.ReportRun
+	var reportRun *datastore.ReportRun = new(datastore.ReportRun)
 
 	if scanReport.ScanRunId != nil {
-		if err := datastore.ReportRuns().FindByID(*scanReport.ScanRunId, reportRun)(tx); err != nil && err != gorm.ErrRecordNotFound {
-			tx.Rollback()
-			return nil, fmt.Errorf("failed to find report run: %v", err)
-		}
+		reportRun.ID = *scanReport.ScanRunId
 	}
 
-	if reportRun == nil {
-		reportRun = &datastore.ReportRun{}
-		if err := datastore.ReportRuns().Create(reportRun)(tx); err != nil {
-			tx.Rollback()
-			return nil, fmt.Errorf("failed to create new report run: %v", err)
-		}
+	if err := datastore.ReportRuns().FirstOrCreate(reportRun)(tx); err != nil {
+		tx.Rollback()
+		return nil, fmt.Errorf("failed to get or create report run: %v", err)
 	}
 
 	var machine *datastore.Machine = &datastore.Machine{

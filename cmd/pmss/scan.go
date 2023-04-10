@@ -67,6 +67,7 @@ var scanCmd = &cobra.Command{
 				}
 
 				if response.StatusCode() == http.StatusCreated {
+					fmt.Printf("report run id: %s\n", reportRunId)
 					// copy pointer value
 					var tmpUuid = response.JSON201.Id
 					reportRunId = &tmpUuid

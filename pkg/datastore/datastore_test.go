@@ -8,6 +8,10 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	testDbUrl = "mysql://pmss:pmss@tcp(mariadb:3306)/test_pmss?parseTime=true"
+)
+
 func TestDatastore(t *testing.T) {
 	testCases := []struct {
 		testName string
@@ -15,12 +19,8 @@ func TestDatastore(t *testing.T) {
 	}{
 		{
 			"mysql",
-			"mysql://pmss:pmss@tcp(mariadb:3306)/pmss?parseTime=true",
+			testDbUrl,
 		},
-		// {
-		// 	"sqlite",
-		// 	"sqlite3://:memory:",
-		// },
 	}
 
 	for _, testCase := range testCases {

@@ -1,2 +1,2 @@
 db:
-  url: "mysql://pmss:pmss@tcp(mariadb:3306)/pmss"
+  url: "mysql://pmss:pmss@tcp(mariadb:3306)/pmss?charset=utf8&parseTime=True&loc=Local"
