@@ -64,6 +64,16 @@ paths:
                 $ref: '#/components/schemas/Error'
 
 components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   schemas:
 
     NewReportRequest:
@@ -168,3 +178,6 @@ components:
           format: int32
         message:
           type: string
+
+
+  

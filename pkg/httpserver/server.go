@@ -2,6 +2,7 @@ package httpserver
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -25,13 +26,15 @@ type Server struct {
 
 func New(ctx context.Context, pmss *pmss.Pmss, opts ...Option) *Server {
 
-	ginEngine := apiserver.RegisterHandlersWithOptions(gin.Default(), &handler{pmss}, apiserver.GinServerOptions{
-		BaseURL: "/api/v1",
-	})
-
 	srv := &Server{
 		listenAddr: ":8080",
 	}
+
+	ginEngine := apiserver.RegisterHandlersWithOptions(gin.Default(), &handler{pmss}, apiserver.GinServerOptions{
+		BaseURL:     "/api/v1",
+		Middlewares: []apiserver.MiddlewareFunc{srv.AuthMiddlerware()},
+	},
+	)
 
 	for _, opt := range opts {
 		opt(srv)
@@ -45,6 +48,19 @@ func New(ctx context.Context, pmss *pmss.Pmss, opts ...Option) *Server {
 	}
 
 	return srv
+}
+
+func (s *Server) AuthMiddlerware() apiserver.MiddlewareFunc {
+	return func(c *gin.Context) {
+		authHdr := c.Request.Header.Get("Authorization")
+		if authHdr == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "no auth header"})
+			return
+		}
+
+		fmt.Println("auth header:", authHdr)
+		c.Next()
+	}
 }
 
 func (s *Server) Start() error {
