@@ -8,6 +8,7 @@ import (
 	"os/exec"
 
 	"github.com/magefile/mage/mg"
+	"github.com/magefile/mage/sh"
 )
 
 // type Run mg.Namespace
@@ -39,6 +40,7 @@ func goBuild(file, outFile string) error {
 
 func Bootstrap() error {
 	var err error
+	err = errors.Join(sh.Run("git", "submodule", "update", "--init", "--recursive"))
 	err = errors.Join(err, goCmd("mod", "download"))
 	err = errors.Join(err, Generate())
 	return err

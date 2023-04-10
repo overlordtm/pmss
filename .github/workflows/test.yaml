@@ -34,9 +34,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - name: Checkout submodules
-        run: git submodule update --init --recursive
-      
       - name: Bootstrap
         run: go run mage.go bootstrap
 
