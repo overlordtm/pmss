@@ -39,3 +39,5 @@ jobs:
 
       - name: Run tests
         run: go run mage.go test
+        env:
+          PMSS_TEST_DB_URL: "mysql://pmss:pmss@tcp(localhost:3306)/test_pmss?parseTime=true"

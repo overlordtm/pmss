@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/overlordtm/pmss/internal/utils"
@@ -13,7 +14,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const testDbUrl = "mysql://pmss:pmss@tcp(mariadb:3306)/test_pmss?parseTime=true"
+var (
+	testDbUrl string
+)
+
+func TestMain(m *testing.M) {
+	testDbUrl = utils.EnvOrDefault("PMSS_TEST_DB_URL", "mysql://pmss:pmss@tcp(mariadb:3306)/test_pmss?parseTime=true")
+	exitCode := m.Run()
+	os.Exit(exitCode)
+}
 
 func TestHashRetrival(t *testing.T) {
 	testCases := []struct {
