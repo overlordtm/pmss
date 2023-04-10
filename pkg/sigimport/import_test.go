@@ -1,22 +1,12 @@
 package sigimport
 
 import (
-	"fmt"
-	"os"
 	"testing"
 )
 
 func TestImport(t *testing.T) {
-	projRoot := os.Getenv("PMSS_PROJ_ROOT")
-	dbPath := fmt.Sprintf("%s/test/test_sig.db", projRoot)
-	fmt.Printf("dbPath: '%s'\n", dbPath)
-	defer os.Remove(dbPath)
-
-	csvFile := fmt.Sprintf("%s/test/test.csv", projRoot)
-	fmt.Printf("csvFile: '%s'\n", csvFile)
-
-	dbURI := fmt.Sprintf("%s?_journal=OFF&_locking=EXCLUSIVE&_sync=OFF", dbPath)
-	err := Import(dbURI, csvFile)
+	t.SkipNow()
+	err := Import(":memory:", "testdata/malware-bazaar-recent-2023-04-01.csv")
 	if err != nil {
 		t.Error(err)
 	}

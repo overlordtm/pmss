@@ -3,14 +3,21 @@ module github.com/overlordtm/pmss
 go 1.20
 
 require (
+	github.com/deepmap/oapi-codegen v1.12.4
+	github.com/gin-gonic/gin v1.9.0
 	github.com/golang/protobuf v1.5.3
+	github.com/google/uuid v1.3.0
 	github.com/isbm/go-deb v0.0.0-20211119182924-4bb66f353d0a
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/jszwec/csvutil v1.8.0
 	github.com/mattn/go-sqlite3 v1.14.16
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.6.1
+	github.com/spf13/viper v1.15.0
 	google.golang.org/protobuf v1.30.0
+	gorm.io/driver/mysql v1.4.7
+	gorm.io/driver/sqlite v1.4.4
+	gorm.io/gorm v1.24.6
 )
 
 require (
@@ -20,17 +27,14 @@ require (
 	github.com/bytedance/sonic v1.8.0 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/deepmap/oapi-codegen v1.12.4 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
-	github.com/gin-gonic/gin v1.9.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.11.2 // indirect
 	github.com/go-sql-driver/mysql v1.7.0 // indirect
 	github.com/goccy/go-json v0.10.0 // indirect
-	github.com/google/uuid v1.3.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
@@ -54,7 +58,6 @@ require (
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/spf13/viper v1.15.0 // indirect
 	github.com/stretchr/testify v1.8.2 // indirect
 	github.com/subosito/gotenv v1.4.2 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
@@ -69,9 +72,6 @@ require (
 	golang.org/x/tools v0.8.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	gorm.io/driver/mysql v1.4.7 // indirect
-	gorm.io/driver/sqlite v1.4.4 // indirect
-	gorm.io/gorm v1.24.6 // indirect
 )
 
 replace github.com/isbm/go-deb => ./vendor2/go-deb

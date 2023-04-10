@@ -3,81 +3,93 @@ package pmss
 import (
 	"fmt"
 
+	"github.com/overlordtm/pmss/internal/utils"
 	"github.com/overlordtm/pmss/pkg/datastore"
-	"github.com/overlordtm/pmss/pkg/hashvariant"
 	"gorm.io/gorm"
 )
 
 type Pmss struct {
-	Data *datastore.Store
+	dbUrl string
+
+	db *gorm.DB
 }
+
+type Option func(*Pmss)
 
 type HashSearchResult struct {
-	Hash        string                  `json:"hash"`
-	HashVariant hashvariant.HashVariant `json:"hash_variant"`
-	KnownFiles  []string                `json:"known_files"`
+	File *datastore.KnownFile
 }
 
-func New(dbPath string) (*Pmss, error) {
+func WithDbUrl(dbUrl string) Option {
+	return func(p *Pmss) {
+		p.dbUrl = dbUrl
+	}
+}
 
-	dialector, err := datastore.ParseDBUrl(dbPath)
-	if err != nil {
-		return nil, err
+func New(options ...Option) (*Pmss, error) {
+
+	pmms := &Pmss{}
+
+	for _, option := range options {
+		option(pmms)
 	}
 
-	ds, err := datastore.New(datastore.WithDb(dialector))
+	dialector, err := utils.ParseDBUrl(pmms.dbUrl)
 	if err != nil {
+		return nil, fmt.Errorf("failed to parse database url: %v", err)
+	}
+
+	if db, err := gorm.Open(dialector, &gorm.Config{}); err != nil {
 		return nil, fmt.Errorf("failed to initialize datastore: %v", err)
+	} else {
+		pmms.db = db
 	}
 
-	return &Pmss{
-		Data: ds,
-	}, nil
+	datastore.AutoMigrate(pmms.db)
+
+	return pmms, nil
 }
 
-func (p *Pmss) FindByHash(hash string) (r *HashSearchResult, err error) {
-	var files []string
+func (p *Pmss) FindByHash(hash string) (*HashSearchResult, error) {
+	knownFile := new(datastore.KnownFile)
 
-	t := hashvariant.DetectHashVariant(hash)
-
-	if t == hashvariant.Unknown {
-		return nil, fmt.Errorf("unknown hash variant")
-	}
-
-	err = p.Data.KnownFiles().FindAllPathsByHash(hash, &files, &t)
-	if err != nil {
+	if err := datastore.KnownFiles().FindByHash(hash, knownFile)(p.db); err != nil {
 		return nil, err
 	}
 	return &HashSearchResult{
-		Hash:        hash,
-		HashVariant: t,
-		KnownFiles:  files,
+		File: knownFile,
 	}, nil
 }
 
 func (p *Pmss) FindMachineByHostname(machineHostname string, machine *datastore.Machine) (bool, error) {
-	if err := p.Data.Machines().FindByHostname(machineHostname, machine); err != nil {
+	if err := datastore.Machines().FindByHostname(machineHostname, machine)(p.db); err != nil {
 		return false, err
 	}
-	// if machine.ApiKey != machineApiKey {
-	// 	return false, nil
-	// }
 	return true, nil
 }
 
 func (p *Pmss) DoMachineReport(scanReport *ScanReport) (*datastore.ReportRun, error) {
 
+	tx := p.db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
 	var reportRun *datastore.ReportRun
 
 	if scanReport.ScanRunId != nil {
-		if err := p.Data.ReportRuns().FindByID(*scanReport.ScanRunId, reportRun); err != nil && err != gorm.ErrRecordNotFound {
+		if err := datastore.ReportRuns().FindByID(*scanReport.ScanRunId, reportRun)(tx); err != nil && err != gorm.ErrRecordNotFound {
+			tx.Rollback()
 			return nil, fmt.Errorf("failed to find report run: %v", err)
 		}
 	}
 
 	if reportRun == nil {
 		reportRun = &datastore.ReportRun{}
-		if err := p.Data.ReportRuns().CreateNew(reportRun); err != nil {
+		if err := datastore.ReportRuns().Create(reportRun)(tx); err != nil {
+			tx.Rollback()
 			return nil, fmt.Errorf("failed to create new report run: %v", err)
 		}
 	}
@@ -86,20 +98,24 @@ func (p *Pmss) DoMachineReport(scanReport *ScanReport) (*datastore.ReportRun, er
 		MachineId: scanReport.MachineId,
 	}
 
-	if err := p.Data.Machines().GetOrCreate(machine); err != nil {
+	if err := datastore.Machines().FirstOrCreate(machine)(tx); err != nil {
+		tx.Rollback()
 		return nil, fmt.Errorf("failed to get or create machine: %v", err)
 	}
-
-	fmt.Printf("machine %#+v\n", machine)
 
 	for i, _ := range scanReport.Files {
 		scanReport.Files[i].ReportRunID = reportRun.ID
 		scanReport.Files[i].MachineID = machine.ID
 	}
 
-	if err := p.Data.ScannedFiles().InsertBatch(scanReport.Files); err != nil {
-
+	if err := datastore.ScannedFiles().CreateInBatches(scanReport.Files)(tx); err != nil {
+		tx.Rollback()
 		return nil, fmt.Errorf("failed to insert scanned files: %v", err)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		tx.Rollback()
+		return nil, fmt.Errorf("failed to commit transaction: %v", err)
 	}
 
 	return reportRun, nil

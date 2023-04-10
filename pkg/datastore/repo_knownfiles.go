@@ -1,7 +1,9 @@
 package datastore
 
 import (
-	"github.com/overlordtm/pmss/pkg/hashvariant"
+	"fmt"
+
+	"github.com/overlordtm/pmss/pkg/hashtype"
 	"gorm.io/gorm"
 )
 
@@ -10,15 +12,16 @@ type FileStatus byte
 const (
 	FileStatusMalicious FileStatus = 1 << iota
 	FileStatusSafe
+	FileStatusUnknown
 )
 
 type KnownFile struct {
 	*gorm.Model
 	// Path, Hashes, Indexed
-	Path   *string `gorm:"varchar(1024);index:path"`
-	SHA1   string  `gorm:"type:char(40);index:path_sha1;notnull"`
-	SHA256 string  `gorm:"type:char(64);notnull"`
-	MD5    string  `gorm:"type:char(32);notnull"`
+	// Path   *string `gorm:"varchar(1024);index:path"`
+	SHA1   *string `gorm:"type:char(40)"`
+	SHA256 *string `gorm:"type:char(64)"`
+	MD5    *string `gorm:"type:char(32)"`
 
 	// File info
 	Size     *int64  `gorm:"default:null"`
@@ -31,49 +34,45 @@ type KnownFile struct {
 	Status FileStatus `gorm:"notnull;default:1"`
 }
 
+func (f *KnownFile) BeforeCreate(tx *gorm.DB) (err error) {
+	if f.SHA1 == nil && f.SHA256 == nil && f.MD5 == nil {
+		err = fmt.Errorf("at least one hash must be provided")
+		tx.AddError(err)
+		return err
+	}
+	return nil
+}
+
 type knownFileRepository struct {
-	db *gorm.DB
 }
 
-func (repo *knownFileRepository) prepFindByHash(hash string, destVariant *hashvariant.HashVariant) (ctx *gorm.DB) {
-	*destVariant = hashvariant.DetectHashVariant(hash)
-	switch *destVariant {
-	case hashvariant.SHA1:
-		ctx = repo.db.Where("sha1 = ?", hash)
-	case hashvariant.SHA256:
-		ctx = repo.db.Where("sha256 = ?", hash)
-	case hashvariant.MD5:
-		ctx = repo.db.Where("md5 = ?", hash)
-	default:
-		ctx = repo.db.Where("FALSE")
+func (*knownFileRepository) FindByHash(hash string, dest *KnownFile) DbOp {
+	return func(d *gorm.DB) error {
+		hashType := hashtype.Detect(hash)
+		switch hashType {
+		case hashtype.SHA1:
+			return d.Model(&KnownFile{}).Where("sha1 = ?", hash).First(dest).Error
+		case hashtype.SHA256:
+			return d.Model(&KnownFile{}).Where("sha256 = ?", hash).First(dest).Error
+		case hashtype.MD5:
+			return d.Model(&KnownFile{}).Where("md5 = ?", hash).First(dest).Error
+		default:
+			fmt.Println(fmt.Errorf("detect hash type: %v %s", hashType, hash))
+			err := hashtype.ErrUnknown
+			d.AddError(err)
+			return err
+		}
 	}
-	return
 }
 
-func (repo *knownFileRepository) FindByHash(hash string, dest *KnownFile, destVariant *hashvariant.HashVariant) error {
-	return repo.prepFindByHash(hash, destVariant).First(dest).Error
-}
-
-func (repo *knownFileRepository) FindAllPathsByHash(hash string, dest *[]string, destVariant *hashvariant.HashVariant) error {
-	return repo.prepFindByHash(hash, destVariant).Model(&ScannedFile{}).Select("path").Find(dest).Error
-}
-
-func (repo *knownFileRepository) FindAllByHash(hash string, dest *[]KnownFile, destVariant *hashvariant.HashVariant) error {
-	return repo.prepFindByHash(hash, destVariant).Find(dest).Error
-}
-
-func (repo *knownFileRepository) Insert(row KnownFile) error {
-	return repo.db.Create(&row).Error
-}
-
-func (repo *knownFileRepository) InsertBatch(rows []KnownFile) error {
-	return repo.db.CreateInBatches(&rows, 100).Error
-}
-
-func (repo *knownFileRepository) List() ([]KnownFile, error) {
-	var rows []KnownFile
-	if err := repo.db.Find(rows).Error; err != nil {
-		return nil, err
+func (*knownFileRepository) Create(row KnownFile) DbOp {
+	return func(db *gorm.DB) error {
+		return db.Create(&row).Error
 	}
-	return rows, nil
+}
+
+func (*knownFileRepository) CreateInBatches(rows []KnownFile) DbOp {
+	return func(db *gorm.DB) error {
+		return db.CreateInBatches(&rows, 100).Error
+	}
 }

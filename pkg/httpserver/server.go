@@ -9,22 +9,18 @@ import (
 	"github.com/overlordtm/pmss/pkg/pmss"
 )
 
-type options struct {
-	listenAddr string
-}
-
-type Option func(*options)
+type Option func(*Server)
 
 func WithListenAddr(addr string) Option {
-	return func(o *options) {
+	return func(o *Server) {
 		o.listenAddr = addr
 	}
 }
 
 type Server struct {
-	options options
-	pmss    *pmss.Pmss
-	httpSrv *http.Server
+	listenAddr string
+	pmss       *pmss.Pmss
+	httpSrv    *http.Server
 }
 
 func New(ctx context.Context, pmss *pmss.Pmss, opts ...Option) *Server {
@@ -33,21 +29,18 @@ func New(ctx context.Context, pmss *pmss.Pmss, opts ...Option) *Server {
 		BaseURL: "/api/v1",
 	})
 
-	o := options{
+	srv := &Server{
 		listenAddr: ":8080",
 	}
 
 	for _, opt := range opts {
-		opt(&o)
+		opt(srv)
 	}
 
-	srv := &Server{
-		options: o,
-		pmss:    pmss,
-	}
+	srv.pmss = pmss
 
 	srv.httpSrv = &http.Server{
-		Addr:    o.listenAddr,
+		Addr:    srv.listenAddr,
 		Handler: ginEngine,
 	}
 

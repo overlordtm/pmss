@@ -1,78 +1,77 @@
 package datastore
 
 import (
+	"errors"
 	"fmt"
 
+	"github.com/overlordtm/pmss/internal/utils"
 	"gorm.io/gorm"
 )
 
-// Store is a datastore
-type Store struct {
-	opts options
-
-	packageRepository     *packageRepository
-	machineRepository     *machineRepository
-	knownFileRepository   *knownFileRepository
-	scannedFileRepository *scannedFileRepository
-	reportRunRepository   *reportRunRepository
+type Datastore interface {
+	Machines() *machineRepository
+	Packages() *packageRepository
+	KnownFiles() *knownFileRepository
+	ScannedFiles() *scannedFileRepository
+	ReportRuns() *reportRunRepository
 }
 
-type options struct {
-	dialector gorm.Dialector
-}
+type DbOp func(*gorm.DB) error
 
-type Option func(*options)
-
-func WithDb(dialector gorm.Dialector) Option {
-	return func(o *options) {
-		o.dialector = dialector
-	}
-}
-
-func New(opts ...Option) (*Store, error) {
-
-	o := options{}
-
-	for _, option := range opts {
-		option(&o)
-	}
-
-	db, err := gorm.Open(o.dialector, &gorm.Config{})
+func Open(dbUrl string) (*gorm.DB, error) {
+	dialector, err := utils.ParseDBUrl(dbUrl)
 	if err != nil {
-		return nil, fmt.Errorf("error while opening database: %v", err)
+		return nil, fmt.Errorf("failed to parse database url: %v", err)
 	}
-	db.AutoMigrate(&Machine{})
-	db.AutoMigrate(&Package{})
-	db.AutoMigrate(&KnownFile{})
-	db.AutoMigrate(&ScannedFile{})
-	db.AutoMigrate(&ReportRun{})
 
-	return &Store{
-		opts:                  o,
-		packageRepository:     &packageRepository{db},
-		machineRepository:     &machineRepository{db},
-		knownFileRepository:   &knownFileRepository{db},
-		scannedFileRepository: &scannedFileRepository{db},
-		reportRunRepository:   &reportRunRepository{db},
-	}, nil
+	if db, err := gorm.Open(dialector, &gorm.Config{}); err != nil {
+		return nil, fmt.Errorf("failed to initialize datastore: %v", err)
+	} else {
+		return db, nil
+	}
 }
 
-func (ds *Store) Packages() *packageRepository {
-	return ds.packageRepository
+func MustOpen(dbUrl string) *gorm.DB {
+	db, err := Open(dbUrl)
+	if err != nil {
+		panic(err)
+	}
+	return db
 }
 
-func (ds *Store) Machines() *machineRepository {
-	return ds.machineRepository
+func AutoMigrate(db *gorm.DB) (err error) {
+
+	err = errors.Join(err, db.AutoMigrate(&Machine{}))
+	err = errors.Join(err, db.AutoMigrate(&Package{}))
+	err = errors.Join(err, db.AutoMigrate(&KnownFile{}))
+	err = errors.Join(err, db.AutoMigrate(&ScannedFile{}))
+	err = errors.Join(err, db.AutoMigrate(&ReportRun{}))
+
+	return err
 }
 
-func (ds *Store) KnownFiles() *knownFileRepository {
-	return ds.knownFileRepository
+func MustAutoMigrate(db *gorm.DB) {
+	if err := AutoMigrate(db); err != nil {
+		panic(err)
+	}
 }
 
-func (ds *Store) ScannedFiles() *scannedFileRepository {
-	return ds.scannedFileRepository
+func Packages() *packageRepository {
+	return &packageRepository{}
 }
 
-func (ds *Store) ReportRuns() *reportRunRepository {
-	return ds.reportRunRepository
+func Machines() *machineRepository {
+	return &machineRepository{}
+}
+
+func KnownFiles() *knownFileRepository {
+	return &knownFileRepository{}
+}
+
+func ScannedFiles() *scannedFileRepository {
+	return &scannedFileRepository{}
+}
+
+func ReportRuns() *reportRunRepository {
+	return &reportRunRepository{}
 }

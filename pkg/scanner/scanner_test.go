@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/overlordtm/pmss/pkg/client"
+	"github.com/overlordtm/pmss/internal/apiclient"
 	"github.com/overlordtm/pmss/pkg/scanner"
 )
 
@@ -71,7 +71,7 @@ func TestScanFile(t *testing.T) {
 
 	s := scanner.New()
 
-	results := make(chan client.FileFeatures, 1024)
+	results := make(chan apiclient.File, 1024)
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)

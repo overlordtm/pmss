@@ -31,7 +31,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/QueryResponse'
+                $ref: '#/components/schemas/HashQueryResponse'
         default:
           description: unexpected error
           content:
@@ -131,13 +131,31 @@ components:
             path: github.com/google/uuid
 
 
-    QueryResponse:
+    HashQueryResponse:
       type: object
       required:
         - status
       properties:
         status:
+          type: integer
+          x-go-type: datastore.FileStatus
+          x-go-type-import:
+            path: github.com/overlordtm/pmss/pkg/datastore
+        file:
+          $ref: '#/components/schemas/KnownFile'
+
+    KnownFile:
+      type: object
+      properties:
+        md5:
           type: string
+        sha1:
+          type: string
+        sha256:
+          type: string
+        size:
+          type: integer
+          format: int64
 
     Error:
       type: object

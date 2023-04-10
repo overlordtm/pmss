@@ -2,7 +2,7 @@ package datastore
 
 import (
 	"github.com/google/uuid"
-	"github.com/overlordtm/pmss/pkg/hashvariant"
+	"github.com/overlordtm/pmss/pkg/hashtype"
 	"gorm.io/gorm"
 )
 
@@ -48,44 +48,29 @@ type scannedFileRepository struct {
 	db *gorm.DB
 }
 
-func (repo *scannedFileRepository) prepFindByHash(hash string, variant *hashvariant.HashVariant) (*gorm.DB, error) {
-	*variant = hashvariant.DetectHashVariant(hash)
-	switch *variant {
-	case hashvariant.SHA1:
-		return repo.db.Where("sha1 = ?", hash), nil
-	case hashvariant.SHA256:
-		return repo.db.Where("sha256 = ?", hash), nil
-	case hashvariant.MD5:
-		return repo.db.Where("md5 = ?", hash), nil
+func (*scannedFileRepository) FindByHash(hash string, dest *KnownFile) DbOp {
+	return func(d *gorm.DB) error {
+		switch hashtype.Detect(hash) {
+		case hashtype.SHA1:
+			return d.Where("sha1 = ?", hash).First(dest).Error
+		case hashtype.SHA256:
+			return d.Where("sha256 = ?", hash).First(dest).Error
+		case hashtype.MD5:
+			return d.Where("md5 = ?", hash).First(dest).Error
+		default:
+			return hashtype.ErrUnknown
+		}
 	}
-	//return repo.db.Where("1 = 0")
-	return nil, hashvariant.ErrUnknownHashVariant
 }
 
-func (repo *scannedFileRepository) FindByHash(hash string, dest *KnownFile, destVariant *hashvariant.HashVariant) error {
-	stmt, err := repo.prepFindByHash(hash, destVariant)
-	if err != nil {
-		return err
+func (*scannedFileRepository) Create(row ScannedFile) DbOp {
+	return func(d *gorm.DB) error {
+		return d.Create(&row).Error
 	}
-	return stmt.First(dest).Error
 }
 
-func (repo *scannedFileRepository) FindAllByHash(hash string, dest *KnownFile, destVariant *hashvariant.HashVariant) error {
-	stmt, err := repo.prepFindByHash(hash, destVariant)
-	if err != nil {
-		return err
+func (*scannedFileRepository) CreateInBatches(rows []ScannedFile) DbOp {
+	return func(d *gorm.DB) error {
+		return d.CreateInBatches(&rows, 1000).Error
 	}
-	return stmt.Find(dest).Error
-}
-
-func (repo *scannedFileRepository) DB() *gorm.DB {
-	return repo.db
-}
-
-func (repo *scannedFileRepository) Insert(row ScannedFile) error {
-	return repo.db.Create(&row).Error
-}
-
-func (repo *scannedFileRepository) InsertBatch(rows []ScannedFile) error {
-	return repo.db.CreateInBatches(&rows, 1000).Error
 }

@@ -27,7 +27,7 @@ var serverCmd = &cobra.Command{
 
 		fmt.Println("fooooo", httpListenAddr, dbUrl)
 
-		pmss, err := pmss.New(dbUrl)
+		pmss, err := pmss.New(pmss.WithDbUrl(dbUrl))
 		if err != nil {
 			return fmt.Errorf("failed to initialize PMSS: %v", err)
 		}
