@@ -4,19 +4,6 @@ on: [push]
 
 jobs:
   test:
-    env:
-      PMSS_PROJ_ROOT: ${{github.workspace}}
-      GOPATH: /home/runner/go
-      # SEt default branch to clone from to main
-
-    cache:
-      paths: |
-        ~/go/pkg/mod
-        ~/go/bin
-      key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-      restore-keys: |
-        ${{ runner.os }}-go-
-
     services:
       mariadb:
         image: mariadb:10.11
