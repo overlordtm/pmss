@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 
+	"github.com/denisbrodbeck/machineid"
 	"github.com/google/uuid"
 	"github.com/overlordtm/pmss/internal/apiclient"
 	"github.com/overlordtm/pmss/pkg/client"
@@ -51,6 +53,16 @@ var scanCmd = &cobra.Command{
 
 		var reportRunId *uuid.UUID = nil
 
+		hostname, err := os.Hostname()
+		if err != nil {
+			return fmt.Errorf("failed to get hostname: %v", err)
+		}
+
+		machineId, err := machineid.ProtectedID("pmss")
+		if err != nil {
+			return fmt.Errorf("failed to get machine id: %v", err)
+		}
+
 		for f := range ch {
 			files = append(files, f)
 
@@ -58,8 +70,8 @@ var scanCmd = &cobra.Command{
 				logrus.WithField("files", len(files)).Info("sending batch")
 				response, err := client.SubmitFiles(ctx, apiclient.NewReportRequest{
 					Files:       files,
-					Hostname:    "test",
-					MachineId:   "test",
+					Hostname:    hostname,
+					MachineId:   machineId,
 					ReportRunId: reportRunId,
 				})
 				if err != nil {
