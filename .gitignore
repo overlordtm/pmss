@@ -67,12 +67,6 @@ go.work
 localdata/
 !localdata/.gitkeep
 
-# protobuf generated files
-*.pb.go
-
-# generated go code
-*.gen.go
-
 # generated test folder
 pkg/scanner/testdata/gen*
 
