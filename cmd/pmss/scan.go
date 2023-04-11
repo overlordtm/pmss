@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/denisbrodbeck/machineid"
 	"github.com/google/uuid"
@@ -34,6 +35,15 @@ var scanCmd = &cobra.Command{
 		client, err := client.New(apiUrl)
 		if err != nil {
 			return err
+		}
+
+		// convert paths in args to absolute paths
+		for i, arg := range args {
+			absPath, err := filepath.Abs(arg)
+			if err != nil {
+				return fmt.Errorf("failed to get absolute path for %s: %v", arg, err)
+			}
+			args[i] = absPath
 		}
 
 		scn := scanner.New()
@@ -88,8 +98,6 @@ var scanCmd = &cobra.Command{
 				}
 				files = files[:0]
 			}
-
-			// logrus.WithField("file", f).Info("file scanned")
 		}
 
 		return nil

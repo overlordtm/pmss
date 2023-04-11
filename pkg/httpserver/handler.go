@@ -75,6 +75,7 @@ func (h *handler) SubmitReport(c *gin.Context) {
 	reportFiles := make([]apitypes.ReportFile, len(req.Files))
 	for i, f := range req.Files {
 		files[i] = datastore.ScannedFile{
+			Path:   f.Path,
 			MD5:    f.Md5,
 			SHA1:   f.Sha1,
 			SHA256: f.Sha256,
