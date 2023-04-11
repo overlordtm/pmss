@@ -5,11 +5,9 @@ on:
     tags:
       - 'v*'
 
-
-
-on:
-  release:
-    types: [created]
+# on:
+#   release:
+#     types: [created]
 
 jobs:
   releases-matrix:
