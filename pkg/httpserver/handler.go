@@ -99,6 +99,7 @@ func (h *handler) SubmitReport(c *gin.Context) {
 	run, err := h.Pmss.DoMachineReport(&pmss.ScanReport{
 		Hostname:  req.Hostname,
 		Files:     files,
+		IP:        c.ClientIP(),
 		MachineId: req.MachineId,
 		ScanRunId: req.ReportRunId,
 	})

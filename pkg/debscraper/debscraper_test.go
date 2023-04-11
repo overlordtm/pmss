@@ -3,6 +3,8 @@ package debscraper
 import (
 	"context"
 	"testing"
+
+	"github.com/overlordtm/pmss/pkg/datastore"
 )
 
 func setup() *DebScraper {
@@ -27,7 +29,7 @@ func TestListPackages(t *testing.T) {
 
 func TestFetchPackage(t *testing.T) {
 
-	packages := []packageInfo{
+	packages := []datastore.Package{
 		{
 			Name:         "libbz2-1.0",
 			Version:      "1.0.6-9.2~deb10u1",
@@ -51,7 +53,7 @@ func TestFetchPackage(t *testing.T) {
 
 func TestFetchPackage2(t *testing.T) {
 
-	packages := []packageInfo{
+	packages := []datastore.Package{
 		{
 			Name:         "libbz2-1.0",
 			Version:      "1.0.6-9.2~deb10u1",
@@ -67,7 +69,7 @@ func TestFetchPackage2(t *testing.T) {
 		WithArch("amd64"),
 	)
 	for _, pkg := range packages {
-		files, err := s.retryFetchPackage(context.Background(), 5, pkg)
+		files, err := s.FetchPackage(context.Background(), 5, pkg)
 		if err != nil {
 			t.Error(err)
 		}

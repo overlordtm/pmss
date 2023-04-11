@@ -35,7 +35,8 @@ func (s *Scanner) Scan(results chan apiclient.File, paths ...string) (err error)
 
 	wg := sync.WaitGroup{}
 
-	for _, pth := range paths {
+	for _, pth2 := range paths {
+		pth := pth2
 		if info, err2 := os.Stat(pth); err2 != nil {
 			err = errors.Join(err, fmt.Errorf("error while getting file info %s: %v", pth, err2))
 		} else {

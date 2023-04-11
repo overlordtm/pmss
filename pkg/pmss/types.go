@@ -9,5 +9,6 @@ type ScanReport struct {
 	Files     []datastore.ScannedFile
 	Hostname  string
 	MachineId string
+	IP        string
 	ScanRunId *uuid.UUID
 }

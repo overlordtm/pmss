@@ -24,7 +24,9 @@ func Open(dbUrl string) (*gorm.DB, error) {
 		return nil, fmt.Errorf("failed to parse database url: %v", err)
 	}
 
-	if db, err := gorm.Open(dialector, &gorm.Config{}); err != nil {
+	if db, err := gorm.Open(dialector, &gorm.Config{
+		PrepareStmt: true,
+	}); err != nil {
 		return nil, fmt.Errorf("failed to initialize datastore: %v", err)
 	} else {
 		return db, nil
