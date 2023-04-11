@@ -1,35 +1,62 @@
-name: Build PMSS
+name: Build and Release PMSS
 
 on:
-  - release
-  - workflow_dispatch
+  push:
+    tags:
+      - 'v*'
 
 jobs:
-  build:
-
+  build_and_release:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: 1.20.1
-
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
-
-      - name: Checkout submodules
-        run: git submodule update --init --recursive
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.17
       
-      - name: Bootstrap
-        run: go run mage.go bootstrap
+    - name: Check out code
+      uses: actions/checkout@v2
+      
+    - name: Get dependencies
+      run: go mod download
+      
+    - name: Build
+      run: go build -o my-executable -ldflags="-w -s"
+      env:
+        GOOS: linux
+        GOARCH: amd64
+      
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: my-executable
+        path: my-executable
 
-      - name: Run tests
-        run: go run mage.go build:client
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: false
+        
+    - name: Download artifact
+      uses: actions/download-artifact@v2
+      with:
+        name: my-executable
+        path: my-executable
+
+    - name: Upload Release Asset
+      id: upload-release-asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: my-executable/my-executable
+        asset_name: my-executable-linux-amd64
+        asset_content_type: application/octet-stream
