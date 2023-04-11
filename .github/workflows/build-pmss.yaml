@@ -17,6 +17,9 @@ jobs:
 
     - name: Check out code
       uses: actions/checkout@v2
+
+    - name: Checkout git submodules
+      run: git submodule update --init --recursive
       
     - name: Get dependencies
       run: go mod download
