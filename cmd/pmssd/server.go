@@ -25,6 +25,8 @@ var serverCmd = &cobra.Command{
 		httpListenAddr := viper.GetString("http.listen.address")
 		dbUrl := viper.GetString("db.url")
 
+		logrus.WithField("dbUrl", dbUrl).Info("Initializing PMSS")
+
 		pmss, err := pmss.New(pmss.WithDbUrl(dbUrl))
 		if err != nil {
 			return fmt.Errorf("failed to initialize PMSS: %v", err)
