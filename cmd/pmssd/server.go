@@ -40,6 +40,9 @@ func init() {
 	viper.SetDefault("http.listen.address", ":8080")
 	viper.SetDefault("db.url", "sqlite3://:memory:")
 
+	viper.SetEnvPrefix("PMSS")
+	viper.AutomaticEnv()
+
 	serverCmd.Flags().String(flagHttpListenAddr, ":8080", "HTTP listen address")
 	serverCmd.Flags().String(flagDbUrl, "sqlite3://:memory:", "Database URL")
 	viper.BindPFlag("http.listen.address", serverCmd.Flags().Lookup(flagHttpListenAddr))
