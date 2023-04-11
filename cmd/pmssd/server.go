@@ -25,8 +25,6 @@ var serverCmd = &cobra.Command{
 		httpListenAddr := viper.GetString("http.listen.address")
 		dbUrl := viper.GetString("db.url")
 
-		fmt.Println("fooooo", httpListenAddr, dbUrl)
-
 		pmss, err := pmss.New(pmss.WithDbUrl(dbUrl))
 		if err != nil {
 			return fmt.Errorf("failed to initialize PMSS: %v", err)
@@ -48,5 +46,4 @@ func init() {
 	viper.BindPFlag("db.url", serverCmd.Flags().Lookup(flagDbUrl))
 
 	rootCmd.AddCommand(serverCmd)
-
 }

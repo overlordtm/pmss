@@ -4,7 +4,6 @@ package datastore
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/overlordtm/pmss/pkg/hashtype"
 	"gorm.io/gorm"
@@ -19,22 +18,22 @@ const (
 )
 
 type KnownFile struct {
-	ID        uint `gorm:"primarykey"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID uint `gorm:"primarykey"`
 
 	// Path, Hashes, Indexed
-	// Path   *string `gorm:"varchar(1024);index:path"`
-	SHA1   *string `gorm:"type:char(40)"`
-	SHA256 *string `gorm:"type:char(64)"`
-	MD5    *string `gorm:"type:char(32)"`
+	Path *string `gorm:"varchar(1024)"`
+
+	SHA1   *string `gorm:"type:char(40);index"`
+	SHA256 *string `gorm:"type:char(64);index"`
+	MD5    *string `gorm:"type:char(32);index"`
 
 	// File info
 	Size     *int64  `gorm:"default:null"`
 	MimeType *string `gorm:"default:null"`
 
 	// Wether was scraped or voted for
-	FromDeb bool `gorm:"notnull;default:false"`
+	PackageID *uint
+	Package   Package `gorm:"foreignKey:PackageID"`
 
 	// File Status
 	Status FileStatus `gorm:"notnull;default:0"`

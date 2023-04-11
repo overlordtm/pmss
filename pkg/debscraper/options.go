@@ -1,57 +1,58 @@
 package debscraper
 
-import "github.com/sirupsen/logrus"
+import (
+	"github.com/overlordtm/pmss/pkg/datastore"
+	"github.com/sirupsen/logrus"
+)
 
-type options struct {
-	mirrorUrl mirrorFunc
-	distro    string
-	component string
-	arch      string
-	logger    *logrus.Logger
-}
+type Option func(*DebScraper)
 
-type Option func(*options)
-
-func WithMirrorUrl(mirrorUrl string) func(*options) {
-	return func(o *options) {
+func WithMirrorUrl(mirrorUrl string) Option {
+	return func(o *DebScraper) {
 		o.mirrorUrl = func() string {
 			return mirrorUrl
 		}
 	}
 }
 
-func WithRoundRobinMirrors(url ...string) func(*options) {
-	return func(o *options) {
+func WithRoundRobinMirrors(url ...string) Option {
+	return func(o *DebScraper) {
 		o.mirrorUrl = RoundRobinMirror(url...)
 	}
 }
 
-func WithRandomMirrors(url ...string) func(*options) {
-	return func(o *options) {
+func WithRandomMirrors(url ...string) Option {
+	return func(o *DebScraper) {
 		o.mirrorUrl = RandomMirror(url...)
 	}
 }
 
-func WithDistro(distro string) func(*options) {
-	return func(o *options) {
+func WithDistro(distro string) Option {
+	return func(o *DebScraper) {
 		o.distro = distro
 	}
 }
 
-func WithComponent(component string) func(*options) {
-	return func(o *options) {
+func WithComponent(component string) Option {
+	return func(o *DebScraper) {
 		o.component = component
 	}
 }
 
-func WithArch(arch string) func(*options) {
-	return func(o *options) {
+func WithArch(arch string) Option {
+	return func(o *DebScraper) {
 		o.arch = arch
 	}
 }
 
-func WithLogger(logger *logrus.Logger) func(*options) {
-	return func(o *options) {
+func WithLogger(logger *logrus.Logger) Option {
+	return func(o *DebScraper) {
 		o.logger = logger
+	}
+}
+
+func WithOsType(osType datastore.OsType) Option {
+	return func(o *DebScraper) {
+		o.osType = osType
 	}
 }

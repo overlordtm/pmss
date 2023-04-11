@@ -1,56 +1,57 @@
 package datastore
 
 import (
+	"time"
+
 	"gorm.io/gorm"
 )
 
+type OsType string
+
+const (
+	OsTypeDebian    OsType = "debian"
+	OsTypeRedhat    OsType = "redhat"
+	OsTypeUbuntu    OsType = "ubuntu"
+	OsTypeAlmaLinux OsType = "almalinux"
+)
+
 type Package struct {
-	Name         string
-	Version      string
-	Size         uint64
-	MD5          string
-	SHA256       string
-	Architecture string
-	Filename     string
+	ID uint `gorm:"primarykey"`
+
+	Name     string `gorm:"uniqueIndex:package_name_version_architecture"`
+	Filename string
+	MD5Sum   *string `gorm:"default:null"`
+	SHA256   *string `gorm:"default:null"`
+	Version  string  `gorm:"uniqueIndex:package_name_version_architecture"`
+	Size     uint64
+
+	Architecture string `gorm:"uniqueIndex:package_name_version_architecture"`
 	Distro       string
-	// ScrapedAt    *time.Time
+	Component    string
+	OsType       OsType
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	ScrapedAt time.Time `gorm:"default:null"`
 }
 
 type packageRepository struct {
-	db *gorm.DB
 }
 
-func (repo *packageRepository) FindByMD5(md5 string) (*Package, error) {
-	var row Package
-	err := repo.db.Where("md5 = ?", md5).First(&row).Error
-	if err != nil {
-		return nil, err
+func (*packageRepository) FindAll(dest []Package) DbOp {
+	return func(d *gorm.DB) error {
+		return d.Model(&Package{}).Find(&dest).Error
 	}
-	return &row, nil
 }
 
-func (repo *packageRepository) FindByName(name string) (*Package, error) {
-	var row Package
-	err := repo.db.Where("name = ?", name).First(&row).Error
-	if err != nil {
-		return nil, err
+func (*packageRepository) Save(p Package) DbOp {
+	return func(d *gorm.DB) error {
+		return d.Save(&p).Error
 	}
-	return &row, nil
 }
 
-func (repo *packageRepository) FindAll() ([]Package, error) {
-	var rows []Package
-	err := repo.db.Find(&rows).Error
-	if err != nil {
-		return nil, err
+func (*packageRepository) CreateInBatches(packages []Package) DbOp {
+	return func(d *gorm.DB) error {
+		return d.CreateInBatches(packages, 1000).Error
 	}
-	return rows, nil
-}
-
-func (repo *packageRepository) Insert(row Package) error {
-	return repo.db.Create(&row).Error
-}
-
-func (repo *packageRepository) InsertBatch(rows []Package) error {
-	return repo.db.CreateInBatches(&rows, 100).Error
 }

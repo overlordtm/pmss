@@ -1,10 +1,15 @@
 package pmss
 
 import (
+	"context"
+	"errors"
 	"fmt"
+	"sync"
+	"time"
 
 	"github.com/overlordtm/pmss/internal/utils"
 	"github.com/overlordtm/pmss/pkg/datastore"
+	"github.com/overlordtm/pmss/pkg/pkgscraper"
 	"gorm.io/gorm"
 )
 
@@ -124,4 +129,69 @@ func (p *Pmss) ScanFile(scannedFile *datastore.ScannedFile) (*datastore.KnownFil
 		return knownFile, err
 	}
 	return knownFile, nil
+}
+
+func (p *Pmss) UpdatePackages(ctx context.Context) (err error) {
+
+	if err1 := p.db.Transaction(func(tx *gorm.DB) error {
+		return pkgscraper.ScrapeDebianMirror(ctx, p.db, "buster", "amd64", "main")
+	}); err1 != nil {
+		err = errors.Join(err, err1)
+	}
+
+	if err1 := p.db.Transaction(func(tx *gorm.DB) error {
+		return pkgscraper.ScrapeDebianMirror(ctx, p.db, "buster", "amd64", "non-free")
+	}); err1 != nil {
+		err = errors.Join(err, err1)
+	}
+
+	if err1 := p.db.Transaction(func(tx *gorm.DB) error {
+		return pkgscraper.ScrapeDebianMirror(ctx, p.db, "buster", "amd64", "contrib")
+	}); err1 != nil {
+		err = errors.Join(err, err1)
+	}
+
+	return err
+}
+
+func (p *Pmss) UpdatePackageHashes(ctx context.Context, concurrency int) error {
+
+	packages := make([]datastore.Package, 0)
+
+	if err := p.db.Model(&datastore.Package{}).Where("scraped_at IS NULL").Find(&packages).Error; err != nil {
+		return fmt.Errorf("failed to get unscraped packages: %v", err)
+	}
+
+	workCh := make(chan datastore.Package, 1024)
+
+	wg := sync.WaitGroup{}
+	wg.Add(concurrency)
+
+	go func() {
+		for _, pkg := range packages {
+			workCh <- pkg
+		}
+		close(workCh)
+	}()
+
+	for i := 0; i < concurrency; i++ {
+		go func() {
+			defer wg.Done()
+			for pkg := range workCh {
+				p.db.Transaction(func(tx *gorm.DB) error {
+					if err := pkgscraper.ScrapeDebianPackage(ctx, p.db, pkg); err != nil {
+						return fmt.Errorf("failed to scrape package: %w", err)
+					}
+
+					pkg.ScrapedAt = time.Now()
+
+					return datastore.Packages().Save(pkg)(p.db)
+				})
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	return nil
 }
