@@ -13,7 +13,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v2
       with:
-        go-version: 1.17
+        go-version: 1.20
       
     - name: Check out code
       uses: actions/checkout@v2
@@ -22,7 +22,7 @@ jobs:
       run: go mod download
       
     - name: Build
-      run: go build -o my-executable -ldflags="-w -s"
+      run: go build -o ./bin/pmss-linux-amd64 ./pmss
       env:
         GOOS: linux
         GOARCH: amd64
@@ -30,8 +30,8 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-artifact@v2
       with:
-        name: my-executable
-        path: my-executable
+        name: pmss-linux-amd64
+        path: ./bin/pmss-linux-amd64
 
     - name: Create Release
       id: create_release
@@ -57,6 +57,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: my-executable/my-executable
-        asset_name: my-executable-linux-amd64
+        asset_path: ./bin/pmss-linux-amd64
+        asset_name: pmss-linux-amd64
         asset_content_type: application/octet-stream
