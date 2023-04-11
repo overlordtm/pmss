@@ -1,10 +1,27 @@
 package pmssd
 
 import (
+	"strings"
+
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
+
+// type cliFlags struct {
+// 	Verbose bool
+// 	Debug   bool
+// 	DB      struct {
+// 		Url string
+// 	}
+// 	Http struct {
+// 		Listen struct {
+// 			Address string
+// 		}
+// 	}
+// }
+
+// var config = cliFlags{}
 
 var rootCmd = &cobra.Command{
 	Use:   "pmssd",
@@ -53,6 +70,12 @@ func init() {
 			}
 		}
 		logrus.Info("Using config file: ", viper.ConfigFileUsed())
+
+		// env bindings
+		viper.AutomaticEnv()
+		viper.SetEnvPrefix("PMSS")
+		viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
 	})
 
 }

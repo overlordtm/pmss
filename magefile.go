@@ -27,11 +27,11 @@ import (
 type Build mg.Namespace
 
 func (Build) Client() error {
-	return goBuild("cmd/pmss/main.go", "bin/pmss")
+	return goBuild("./cmd/pmss/pmss/main.go", "bin/pmss")
 }
 
 func (Build) Server() error {
-	return goBuild("cmd/pmssd/main.go", "bin/pmssd")
+	return goBuild("./cmd/pmssd/pmssd/main.go", "bin/pmssd")
 }
 
 func goBuild(file, outFile string) error {

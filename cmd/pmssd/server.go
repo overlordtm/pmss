@@ -3,7 +3,10 @@ package pmssd
 import (
 	"context"
 	"fmt"
+	"strings"
 
+	"github.com/overlordtm/pmss/internal/utils"
+	"github.com/overlordtm/pmss/internal/viperutils"
 	"github.com/overlordtm/pmss/pkg/httpserver"
 	"github.com/overlordtm/pmss/pkg/pmss"
 	"github.com/sirupsen/logrus"
@@ -12,8 +15,8 @@ import (
 )
 
 const (
-	flagHttpListenAddr = "http-listen-addr"
-	flagDbUrl          = "db-url"
+	flagHttpListenAddr = "http.listen.addr"
+	flagDbUrl          = "db.url"
 )
 
 var serverCmd = &cobra.Command{
@@ -22,8 +25,8 @@ var serverCmd = &cobra.Command{
 	Long:  ``,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
-		httpListenAddr := viper.GetString("http.listen.address")
-		dbUrl := viper.GetString("db.url")
+		httpListenAddr := viper.GetString(flagHttpListenAddr)
+		dbUrl := viper.GetString(flagDbUrl)
 
 		logrus.WithField("dbUrl", dbUrl).Info("Initializing PMSS")
 
@@ -39,16 +42,10 @@ var serverCmd = &cobra.Command{
 }
 
 func init() {
-	viper.SetDefault("http.listen.address", ":8080")
-	viper.SetDefault("db.url", "sqlite3://:memory:")
-
-	viper.SetEnvPrefix("PMSS")
-	viper.AutomaticEnv()
-
-	serverCmd.Flags().String(flagHttpListenAddr, ":8080", "HTTP listen address")
-	serverCmd.Flags().String(flagDbUrl, "sqlite3://:memory:", "Database URL")
-	viper.BindPFlag("http.listen.address", serverCmd.Flags().Lookup(flagHttpListenAddr))
-	viper.BindPFlag("db.url", serverCmd.Flags().Lookup(flagDbUrl))
-
+	serverCmd.Flags().String(utils.ReplaceDotWithDash(flagHttpListenAddr), ":8080", "HTTP listen address")
+	serverCmd.Flags().String(utils.ReplaceDotWithDash(flagDbUrl), "mysql://pmss:pmss@tcp(localhost:3306)/pmss?charset=utf8&parseTime=True&loc=Local", "Database URL")
+	viper.BindPFlag(flagHttpListenAddr, serverCmd.Flags().Lookup(utils.ReplaceDotWithDash(flagHttpListenAddr)))
+	viper.BindPFlag(flagDbUrl, serverCmd.Flags().Lookup(utils.ReplaceDotWithDash(flagDbUrl)))
+	viperutils.BindPFlags(serverCmd.Flags(), strings.NewReplacer("-", "."))
 	rootCmd.AddCommand(serverCmd)
 }

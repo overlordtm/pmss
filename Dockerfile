@@ -4,7 +4,7 @@ WORKDIR /build
 COPY . .
 
 RUN git submodule update --init --recursive
-RUN go build -o ./bin/pmssd ./pmssd
+RUN go run mage.go bootstrap build:server
 
 FROM debian:buster-slim
 

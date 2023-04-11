@@ -34,10 +34,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - name: Bootstrap
-        run: go run mage.go bootstrap
-
       - name: Run tests
-        run: go run mage.go test
+        run: go run mage.go bootstrap test
         env:
           PMSS_TEST_DB_URL: "mysql://pmss:pmss@tcp(localhost:3306)/test_pmss?parseTime=true"

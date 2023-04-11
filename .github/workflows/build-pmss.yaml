@@ -29,5 +29,5 @@ jobs:
         goos: ${{ matrix.goos }}
         goarch: ${{ matrix.goarch }}
         goversion: "1.20.1"
-        project_path: "./pmss/"
+        project_path: "./cmd/pmss/pmss"
         binary_name: "pmss"
