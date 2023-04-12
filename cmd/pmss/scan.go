@@ -28,6 +28,8 @@ var scanCmd = &cobra.Command{
 	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 
+		logrus.SetOutput(os.Stderr)
+
 		apiUrl := viper.GetString("api.url")
 
 		ctx, _ := context.WithCancel(context.Background())
@@ -74,6 +76,7 @@ var scanCmd = &cobra.Command{
 		}
 
 		for f := range ch {
+			logrus.WithField("file", f.Path).WithField("hash", f.Md5).Info("scanning file")
 			files = append(files, f)
 
 			if len(files) == batchSize {
@@ -91,9 +94,10 @@ var scanCmd = &cobra.Command{
 				if response.StatusCode() == http.StatusCreated {
 					reportRunId = &response.JSON201.Id
 					for _, file := range response.JSON201.Files {
-						logrus.WithField("file", file).Info("file scanned")
+						fmt.Printf("%s\t%s\n", file.Path, file.Status)
 					}
 				} else {
+					logrus.WithField("statusCode", response.StatusCode()).Error("failed to send files, unexpected status code")
 					return fmt.Errorf("failed to send files: %#+v", response.JSONDefault)
 				}
 				files = files[:0]

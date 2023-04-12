@@ -95,6 +95,7 @@ func (p *Pmss) DoMachineReport(scanReport *ScanReport) (*datastore.ReportRun, er
 
 	var machine *datastore.Machine = &datastore.Machine{
 		MachineId: scanReport.MachineId,
+		Hostname:  scanReport.Hostname,
 	}
 
 	if err := datastore.Machines().FirstOrCreate(machine)(tx); err != nil {

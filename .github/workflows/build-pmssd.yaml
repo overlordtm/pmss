@@ -1,4 +1,4 @@
-name: Build PMSSd docker image
+name: Build and Release PMSSd (docker image)
 
 on:
   push:

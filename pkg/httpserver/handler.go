@@ -67,7 +67,7 @@ func (h *handler) SubmitReport(c *gin.Context) {
 	var req apitypes.NewReportRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		//Should bind json send response automatically
-		c.Error(fmt.Errorf("error: %s", err.Error()))
+		c.Error(fmt.Errorf("ShouldBindJSON error: %s", err.Error()))
 		return
 	}
 
@@ -104,7 +104,7 @@ func (h *handler) SubmitReport(c *gin.Context) {
 		ScanRunId: req.ReportRunId,
 	})
 	if err != nil {
-		c.Error(fmt.Errorf("error: %s", err.Error()))
+		c.Error(fmt.Errorf("DoMachineReport error: %s", err.Error()))
 		return
 	}
 

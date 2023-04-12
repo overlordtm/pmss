@@ -17,6 +17,19 @@ const (
 	FileStatusMalicious FileStatus = 255
 )
 
+func (f FileStatus) String() string {
+	switch f {
+	case FileStatusUnknown:
+		return "unknown"
+	case FileStatusSafe:
+		return "safe"
+	case FileStatusMalicious:
+		return "malicious"
+	default:
+		return "unknown"
+	}
+}
+
 type KnownFile struct {
 	ID uint `gorm:"primarykey"`
 
