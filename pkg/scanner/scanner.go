@@ -2,21 +2,35 @@ package scanner
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 
 	"errors"
 
+	"github.com/bmatcuk/doublestar/v4"
 	"github.com/overlordtm/pmss/internal/apiclient"
 	"github.com/overlordtm/pmss/pkg/client"
 	"github.com/overlordtm/pmss/pkg/multihasher"
+	"github.com/sirupsen/logrus"
 )
 
+type Option func(*Scanner)
+
+func WithExcludePaths(paths []string) Option {
+	return func(s *Scanner) {
+		s.excludedPaths = paths
+	}
+}
+
 type Scanner struct {
-	client  client.Client
-	workers int
+	maxSize       int64
+	client        client.Client
+	workers       int
+	excludedPaths []string
 }
 
 type scanItem struct {
@@ -24,10 +38,18 @@ type scanItem struct {
 	info os.FileInfo
 }
 
-func New() *Scanner {
-	return &Scanner{
-		workers: runtime.NumCPU() * 2,
+func New(opts ...Option) *Scanner {
+
+	s := &Scanner{
+		excludedPaths: make([]string, 0, 0),
+		workers:       runtime.NumCPU() * 2,
 	}
+
+	for _, o := range opts {
+		o(s)
+	}
+
+	return s
 }
 
 // Scan scans the given paths and returns the results. Path can be either directory or file
@@ -65,7 +87,31 @@ func (s *Scanner) Scan(results chan apiclient.File, paths ...string) (err error)
 	close(results)
 
 	return err
+}
 
+func (s *Scanner) shouldScan(pth string, info fs.FileInfo) bool {
+
+	if info != nil && !info.Mode().IsRegular() {
+		return false
+	}
+
+	for _, patt := range s.excludedPaths {
+
+		if strings.HasSuffix(patt, string(filepath.Separator)) && strings.HasPrefix(pth, filepath.FromSlash(patt)) {
+			return false
+		}
+
+		match, err := doublestar.PathMatch(patt, pth)
+		if err != nil {
+			logrus.WithError(err).WithField("pattern", patt).Fatal("Bad exclude pattern")
+			return false
+		}
+		if match {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (s *Scanner) scanDir(results chan apiclient.File, dir string) (err error) {
@@ -83,10 +129,15 @@ func (s *Scanner) scanDir(results chan apiclient.File, dir string) (err error) {
 				return filepath.SkipDir
 				// return err
 			}
-			if !info.IsDir() && info.Mode().IsRegular() {
-				// scan all regulrar files
+
+			if !info.IsDir() && s.shouldScan(path, info) {
 				queue <- scanItem{path: path, info: info}
 			}
+
+			// if !info.IsDir() && info.Mode().IsRegular() && !(strings.HasPrefix(path, "/proc/") || strings.HasPrefix(path, "/sys/")) {
+			// 	// scan all regulrar files
+			// 	queue <- scanItem{path: path, info: info}
+			// }
 			return nil
 		})
 		close(queue)

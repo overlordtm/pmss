@@ -26,6 +26,7 @@ require (
 	github.com/andrew-d/lzma v0.0.0-20120628231508-2a7c55cad4a2 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb // indirect
+	github.com/bmatcuk/doublestar/v4 v4.6.0 // indirect
 	github.com/bytedance/sonic v1.8.0 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect

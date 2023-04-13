@@ -18,25 +18,31 @@ import (
 )
 
 const (
-	flagApiUrl = "api-url"
+	flagApiUrl       = "api-url"
+	flagPathsExclude = "exclude"
 )
 
 var scanCmd = &cobra.Command{
 	Use:   "scan",
 	Short: "Scans given list of files or directoryes",
 	Long:  `Scans given list of files or directoryes, compute hashes and extract metadata and report it to the server.`,
-	Args:  cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		logrus.SetOutput(os.Stderr)
 
 		apiUrl := viper.GetString("api.url")
+		excludePaths := viper.GetStringSlice("paths.exclude")
 
 		ctx, _ := context.WithCancel(context.Background())
 
 		client, err := client.New(apiUrl)
 		if err != nil {
 			return err
+		}
+
+		// default to scanning root
+		if len(args) == 0 {
+			args = append(args, "/")
 		}
 
 		// convert paths in args to absolute paths
@@ -48,7 +54,7 @@ var scanCmd = &cobra.Command{
 			args[i] = absPath
 		}
 
-		scn := scanner.New()
+		scn := scanner.New(scanner.WithExcludePaths(excludePaths))
 
 		ch := make(chan apiclient.File, 1024)
 
@@ -75,32 +81,41 @@ var scanCmd = &cobra.Command{
 			return fmt.Errorf("failed to get machine id: %v", err)
 		}
 
-		for f := range ch {
-			logrus.WithField("file", f.Path).WithField("hash", f.Md5).Info("scanning file")
-			files = append(files, f)
+		for {
+			select {
+			case f, ok := <-ch:
 
-			if len(files) == batchSize {
-				logrus.WithField("files", len(files)).Info("sending batch")
-				response, err := client.SubmitFiles(ctx, apiclient.NewReportRequest{
-					Files:       files,
-					Hostname:    hostname,
-					MachineId:   machineId,
-					ReportRunId: reportRunId,
-				})
-				if err != nil {
-					logrus.WithError(err).Error("failed to send files")
+				if ok {
+					logrus.WithField("file", f.Path).Debug("scanning file")
+					files = append(files, f)
 				}
 
-				if response.StatusCode() == http.StatusCreated {
-					reportRunId = &response.JSON201.Id
-					for _, file := range response.JSON201.Files {
-						fmt.Printf("%s\t%s\n", file.Path, file.Status)
+				if len(files) == batchSize || !ok {
+					logrus.WithField("files", len(files)).Debug("Submiting report batch")
+					response, err := client.SubmitFiles(ctx, apiclient.NewReportRequest{
+						Files:       files,
+						Hostname:    hostname,
+						MachineId:   machineId,
+						ReportRunId: reportRunId,
+					})
+					if err != nil {
+						logrus.WithError(err).Error("Failed to submit report batch")
 					}
-				} else {
-					logrus.WithField("statusCode", response.StatusCode()).Error("failed to send files, unexpected status code")
-					return fmt.Errorf("failed to send files: %#+v", response.JSONDefault)
+
+					if response.StatusCode() == http.StatusCreated {
+						reportRunId = &response.JSON201.Id
+						for _, file := range response.JSON201.Files {
+							fmt.Printf("%s\t%s\n", file.Path, file.Status)
+						}
+					} else {
+						logrus.WithField("statusCode", response.StatusCode()).Error("Failed to submit report batch, unexpected status code")
+						return fmt.Errorf("failed to send files: %#+v", response.JSONDefault)
+					}
+					files = files[:0]
 				}
-				files = files[:0]
+				if !ok {
+					return nil
+				}
 			}
 		}
 
@@ -109,11 +124,14 @@ var scanCmd = &cobra.Command{
 }
 
 func init() {
-	viper.SetDefault("api.url", "http://localhost:8080/api/v1")
 
-	scanCmd.Flags().String(flagApiUrl, viper.GetString("api-url"), "API URL to send the report to")
+	viper.SetDefault("paths.exclude", []string{"/dev/", "/sys/", "/proc/"})
 
-	viper.GetViper().BindPFlag("api.url", scanCmd.Flags().Lookup("api-url"))
+	scanCmd.Flags().String(flagApiUrl, "http://localhost:8080/api/v1", "API URL to send the report to")
+	scanCmd.Flags().StringSlice(flagPathsExclude, []string{"/proc/", "/dev/", "/sys/"}, "Paths to exclude")
+
+	viper.GetViper().BindPFlag("api.url", scanCmd.Flags().Lookup(flagApiUrl))
+	viper.GetViper().BindPFlag("paths.exclude", scanCmd.Flags().Lookup(flagPathsExclude))
 
 	rootCmd.AddCommand(scanCmd)
 }

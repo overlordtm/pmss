@@ -1,8 +1,6 @@
 package pmss
 
 import (
-	"fmt"
-
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
@@ -22,5 +20,4 @@ func initViper() {
 		}
 	}
 	logrus.Debug("Using config file: ", viper.ConfigFileUsed())
-	fmt.Println("Using config file: ", viper.ConfigFileUsed())
 }

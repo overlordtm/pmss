@@ -69,7 +69,7 @@ func init() {
 				logrus.Info("No config file found")
 			}
 		}
-		logrus.Info("Using config file: ", viper.ConfigFileUsed())
+		logrus.Debug("Using config file: ", viper.ConfigFileUsed())
 
 		// env bindings
 		viper.AutomaticEnv()
