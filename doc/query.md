@@ -72,3 +72,9 @@ SELECT m.id, m.hostname, f.id, f.path, CONV(f.mode, 10, 8) as mode, f.owner, f.g
 FROM scanned_files f JOIN machines m ON f.machine_id = m.id
 WHERE (mode & 2048) > 0 OR (mode & 1024) > 0;
 ```
+
+## Find files in /usr/bin and group them by path and md5
+
+```sql
+SELECT path, md5, COUNT(*) as cnt FROM scanned_files WHERE path LIKE '/usr/bin/%' GROUP BY path, md5 ORDER BY path, cnt ASC
+```
