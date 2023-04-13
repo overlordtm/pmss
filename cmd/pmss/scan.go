@@ -20,6 +20,7 @@ import (
 const (
 	flagApiUrl       = "api-url"
 	flagPathsExclude = "exclude"
+	flagSilent       = "silent"
 )
 
 var scanCmd = &cobra.Command{
@@ -81,6 +82,8 @@ var scanCmd = &cobra.Command{
 			return fmt.Errorf("failed to get machine id: %v", err)
 		}
 
+		silent := viper.GetBool(flagSilent)
+
 		for {
 			select {
 			case f, ok := <-ch:
@@ -104,8 +107,10 @@ var scanCmd = &cobra.Command{
 
 					if response.StatusCode() == http.StatusCreated {
 						reportRunId = &response.JSON201.Id
-						for _, file := range response.JSON201.Files {
-							fmt.Printf("%s\t%s\n", file.Path, file.Status)
+						if !silent {
+							for _, file := range response.JSON201.Files {
+								fmt.Printf("%s\t%s\n", file.Path, file.Status)
+							}
 						}
 					} else {
 						logrus.WithField("statusCode", response.StatusCode()).Error("Failed to submit report batch, unexpected status code")
@@ -129,9 +134,11 @@ func init() {
 
 	scanCmd.Flags().String(flagApiUrl, "http://localhost:8080/api/v1", "API URL to send the report to")
 	scanCmd.Flags().StringSlice(flagPathsExclude, []string{"/proc/", "/dev/", "/sys/"}, "Paths to exclude")
+	scanCmd.Flags().Bool(flagSilent, false, "Do not print files results to stdout")
 
 	viper.GetViper().BindPFlag("api.url", scanCmd.Flags().Lookup(flagApiUrl))
 	viper.GetViper().BindPFlag("paths.exclude", scanCmd.Flags().Lookup(flagPathsExclude))
+	viper.BindPFlag("silent", scanCmd.Flags().Lookup(flagSilent))
 
 	rootCmd.AddCommand(scanCmd)
 }
