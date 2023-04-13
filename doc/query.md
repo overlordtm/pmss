@@ -1,5 +1,6 @@
 # Useful queries
 
+Do not forget to end with LIMIT when exploring, it can be quite a lot of matches
 
 ## Create a view to see latest report for each machine
 
@@ -38,9 +39,9 @@ SELECT DISTINCT m.hostname FROM scanned_files f JOIN machines m ON f.machine_id 
 ## Find "rare" files
 
 ```sql
-SELECT md5, COUNT(*) as cnt from scanned_files WHERE path NOT LIKE '/etc/%' AND path NOT LIKE '/var/lib/docker/%' AND path NOT LIKE '/var/lib/kubelet/pods/%' AND size > 1024*100 GROUP BY md5 HAVING cnt < 10 ORDER BY cnt ASC LIMIT 100
+SELECT md5, COUNT(*) as cnt from scanned_files WHERE path NOT LIKE '/etc/%' AND path NOT LIKE '/var/lib/docker/%' AND path NOT LIKE '/var/lib/kubelet/pods/%' AND size > 1024*100 GROUP BY md5 HAVING cnt < 10 ORDER BY cnt ASC;
 
-SELECT * FROM scanned_files WHERE md5 IN (SELECT md5 as cnt from scanned_files WHERE path NOT LIKE '/etc/%' AND path NOT LIKE '/var/lib/docker/%' AND path NOT LIKE '/var/lib/kubelet/pods/%' AND size > 1024*100 GROUP BY md5 HAVING cnt < 10) LIMIT 100
+SELECT * FROM scanned_files WHERE md5 IN (SELECT md5 as cnt from scanned_files WHERE path NOT LIKE '/etc/%' AND path NOT LIKE '/var/lib/docker/%' AND path NOT LIKE '/var/lib/kubelet/pods/%' AND size > 1024*100 GROUP BY md5 HAVING cnt < 10);
 ```
 
 ## Display file mode in octal format
@@ -77,4 +78,25 @@ WHERE (mode & 2048) > 0 OR (mode & 1024) > 0;
 
 ```sql
 SELECT path, md5, COUNT(*) as cnt FROM scanned_files WHERE path LIKE '/usr/bin/%' GROUP BY path, md5 ORDER BY path, cnt ASC
+```
+
+## Find unique files
+
+```sql
+SELECT m.id, m.hostname, f.id, f.path, CONV(f.mode, 10, 8) as mode, f.size, f.owner, f.group
+FROM  scanned_files f JOIN machines m ON f.machine_id = m.id
+GROUP BY f.md5
+HAVING COUNT(*) = 1;
+
+or
+
+SELECT m.id, m.hostname, f.id, f.path, CONV(f.mode, 10, 8) as mode, f.size, f.owner, f.group
+FROM (
+    SELECT md5, machine_id, id
+    FROM scanned_files
+    GROUP BY md5, machine_id
+    HAVING COUNT(*) = 1
+) AS unique_md5_files
+JOIN machines m ON unique_md5_files.machine_id = m.id
+JOIN scanned_files f ON unique_md5_files.id = f.id;
 ```
