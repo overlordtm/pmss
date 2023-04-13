@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/overlordtm/pmss/internal/utils"
 	"github.com/overlordtm/pmss/pkg/datastore"
 	"github.com/overlordtm/pmss/pkg/pkgscraper"
 	"gorm.io/gorm"
@@ -33,26 +32,21 @@ func WithDbUrl(dbUrl string) Option {
 
 func New(options ...Option) (*Pmss, error) {
 
-	pmms := &Pmss{}
+	pmss := &Pmss{}
 
 	for _, option := range options {
-		option(pmms)
+		option(pmss)
 	}
 
-	dialector, err := utils.ParseDBUrl(pmms.dbUrl)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse database url: %v", err)
-	}
-
-	if db, err := gorm.Open(dialector, &gorm.Config{}); err != nil {
+	if db, err := datastore.Open(pmss.dbUrl); err != nil {
 		return nil, fmt.Errorf("failed to initialize datastore: %v", err)
 	} else {
-		pmms.db = db
+		pmss.db = db
 	}
 
-	datastore.AutoMigrate(pmms.db)
+	datastore.AutoMigrate(pmss.db)
 
-	return pmms, nil
+	return pmss, nil
 }
 
 func (p *Pmss) FindByHash(hash string) (*HashSearchResult, error) {

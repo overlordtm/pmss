@@ -39,20 +39,14 @@ func TestDatastore(t *testing.T) {
 				{
 					Hostname:  "hostname1.com",
 					MachineId: "machineid1",
-					IPv4:      utils.StringPtr("192.168.1.1"),
-					IPv6:      utils.StringPtr("2001:fe8::1"),
 				},
 				{
 					Hostname:  "hostname2.com",
 					MachineId: "machineid2",
-					IPv4:      utils.StringPtr("192.168.1.2"),
-					IPv6:      utils.StringPtr("2001:fe8::2"),
 				},
 				{
 					Hostname:  "hostname3.com",
 					MachineId: "machineid3",
-					IPv4:      utils.StringPtr("192.168.1.3"),
-					IPv6:      utils.StringPtr("2001:fe8::3"),
 				},
 			}
 
@@ -61,7 +55,7 @@ func TestDatastore(t *testing.T) {
 				return
 			}
 			var machine datastore.Machine
-			if err := datastore.Machines().FindByIPv4("192.168.1.2", &machine)(tx); err != nil {
+			if err := datastore.Machines().FindByHostname("hostname3.com", &machine)(tx); err != nil {
 				t.Error(err)
 				return
 			}
@@ -78,8 +72,8 @@ func TestDatastore(t *testing.T) {
 					ReportRun: reportRun,
 					Size:      137680,
 					Mode:      0o755,
-					Owner:     "root",
-					Group:     "root",
+					Owner:     utils.Uint32Ptr(0),
+					Group:     utils.Uint32Ptr(33),
 				},
 			}
 			if err := datastore.ScannedFiles().CreateInBatches(scannedFiles)(tx); err != nil {

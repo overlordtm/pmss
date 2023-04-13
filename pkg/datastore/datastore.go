@@ -3,9 +3,13 @@ package datastore
 import (
 	"errors"
 	"fmt"
+	"log"
+	"os"
+	"time"
 
 	"github.com/overlordtm/pmss/internal/utils"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 type Datastore interface {
@@ -26,6 +30,15 @@ func Open(dbUrl string) (*gorm.DB, error) {
 
 	if db, err := gorm.Open(dialector, &gorm.Config{
 		PrepareStmt: true,
+		Logger: logger.New(
+			log.New(os.Stdout, "\r\n", log.LstdFlags),
+			logger.Config{
+				SlowThreshold:             1000 * time.Millisecond,
+				IgnoreRecordNotFoundError: true,
+				Colorful:                  true,
+				LogLevel:                  logger.Warn,
+			},
+		),
 	}); err != nil {
 		return nil, fmt.Errorf("failed to initialize datastore: %v", err)
 	} else {
