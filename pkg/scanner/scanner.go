@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"syscall"
 
 	"errors"
 
@@ -176,6 +177,8 @@ func (s *Scanner) scanFile(path string, info os.FileInfo) (r apiclient.File, err
 		return r, fmt.Errorf("error while hashing file: %v", err)
 	}
 
+	stat := info.Sys().(*syscall.Stat_t)
+
 	return apiclient.File{
 		Path:     path,
 		Size:     info.Size(),
@@ -184,6 +187,8 @@ func (s *Scanner) scanFile(path string, info os.FileInfo) (r apiclient.File, err
 		Sha256:   &h.SHA256,
 		FileMode: uint32(info.Mode()),
 		Mtime:    info.ModTime().Unix(),
+		Owner:    &stat.Uid,
+		Group:    &stat.Gid,
 	}, nil
 
 }

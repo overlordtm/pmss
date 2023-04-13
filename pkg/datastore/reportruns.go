@@ -11,6 +11,9 @@ import (
 type ReportRun struct {
 	ID        uuid.UUID `gorm:"type:char(36);primarykey;default:uuid()"`
 	CreatedAt time.Time
+	IP        string
+	MachineID uint
+	Machine   Machine       `gorm:"foreignKey:MachineID"`
 	Files     []ScannedFile `gorm:"foreignKey:ReportRunID"`
 }
 

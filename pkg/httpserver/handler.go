@@ -85,6 +85,9 @@ func (h *handler) SubmitReport(c *gin.Context) {
 
 			Size: f.Size,
 			Mode: f.FileMode,
+
+			Group: f.Group,
+			Owner: f.Owner,
 		}
 
 		knownFile, err := h.Pmss.ScanFile(&files[i])

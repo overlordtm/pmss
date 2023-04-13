@@ -33,12 +33,12 @@ type ScannedFile struct {
 	Ctime *int64 `gorm:"type:long"`
 
 	// Users
-	Owner string `gorm:"type:varchar(255);notnull"`
-	Group string `gorm:"type:varchar(255);notnull"`
+	Owner *uint32
+	Group *uint32
 
-	// Known file reference
-	KnownMatchID *uint
-	KnownMatch   KnownFile `gorm:"foreignKey:KnownMatchID"`
+	// // Known file reference
+	// KnownMatchID *uint
+	// KnownMatch   KnownFile `gorm:"foreignKey:KnownMatchID"`
 
 	// Run info
 	ReportRunID uuid.UUID

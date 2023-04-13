@@ -4,11 +4,9 @@ import "gorm.io/gorm"
 
 // Machine represents information about a machine on the network. It also contains info whether the machine is allowed to submit files.
 type Machine struct {
-	ID        uint    `gorm:"primarykey"`
-	Hostname  string  `gorm:"type:varchar(255);uniqueIndex:;notnull"`
-	MachineId string  `gorm:"type:varchar(255);uniqueIndex:;notnull"`
-	IPv4      *string `gorm:"type:char(15)"`
-	IPv6      *string `gorm:"type:char(39)"`
+	ID        uint   `gorm:"primarykey"`
+	Hostname  string `gorm:"type:varchar(255);uniqueIndex:;notnull"`
+	MachineId string `gorm:"type:varchar(255);uniqueIndex:;notnull"`
 }
 
 type machineRepository struct {
@@ -35,17 +33,5 @@ func (*machineRepository) FirstOrCreate(machine *Machine) DbOp {
 func (*machineRepository) FindByHostname(hostname string, outMachine *Machine) DbOp {
 	return func(d *gorm.DB) error {
 		return d.First(outMachine, "hostname = ?", hostname).Error
-	}
-}
-
-func (*machineRepository) FindByIPv4(ipv4 string, outMachine *Machine) DbOp {
-	return func(d *gorm.DB) error {
-		return d.First(outMachine, "ipv4 = ?", ipv4).Error
-	}
-}
-
-func (*machineRepository) FindByIPv6(ipv6 string, outMachine *Machine) DbOp {
-	return func(d *gorm.DB) error {
-		return d.First(outMachine, "ipv6 = ?", ipv6).Error
 	}
 }

@@ -82,17 +82,6 @@ func (p *Pmss) DoMachineReport(scanReport *ScanReport) (*datastore.ReportRun, er
 		}
 	}()
 
-	var reportRun *datastore.ReportRun = new(datastore.ReportRun)
-
-	if scanReport.ScanRunId != nil {
-		reportRun.ID = *scanReport.ScanRunId
-	}
-
-	if err := datastore.ReportRuns().FirstOrCreate(reportRun)(tx); err != nil {
-		tx.Rollback()
-		return nil, fmt.Errorf("failed to get or create report run: %v", err)
-	}
-
 	var machine *datastore.Machine = &datastore.Machine{
 		MachineId: scanReport.MachineId,
 		Hostname:  scanReport.Hostname,
@@ -101,6 +90,20 @@ func (p *Pmss) DoMachineReport(scanReport *ScanReport) (*datastore.ReportRun, er
 	if err := datastore.Machines().FirstOrCreate(machine)(tx); err != nil {
 		tx.Rollback()
 		return nil, fmt.Errorf("failed to get or create machine: %v", err)
+	}
+
+	var reportRun *datastore.ReportRun = &datastore.ReportRun{
+		MachineID: machine.ID,
+		IP:        scanReport.IP,
+	}
+
+	if scanReport.ScanRunId != nil {
+		reportRun.ID = *scanReport.ScanRunId
+	}
+
+	if err := datastore.ReportRuns().FirstOrCreate(reportRun)(tx); err != nil {
+		tx.Rollback()
+		return nil, fmt.Errorf("failed to get or create report run: %v", err)
 	}
 
 	for i, _ := range scanReport.Files {

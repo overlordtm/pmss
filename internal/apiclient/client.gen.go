@@ -28,8 +28,10 @@ type Error struct {
 type File struct {
 	Ctime    *int64  `json:"ctime,omitempty"`
 	FileMode uint32  `json:"fileMode"`
+	Group    *uint32 `json:"group,omitempty"`
 	Md5      *string `json:"md5,omitempty"`
 	Mtime    int64   `json:"mtime"`
+	Owner    *uint32 `json:"owner,omitempty"`
 	Path     string  `json:"path"`
 	Sha1     *string `json:"sha1,omitempty"`
 	Sha256   *string `json:"sha256,omitempty"`

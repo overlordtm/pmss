@@ -127,6 +127,12 @@ components:
         ctime:
           type: integer
           format: int64
+        owner:
+          type: integer
+          format: uint32
+        group:
+          type: integer
+          format: uint32
 
     NewReportResponse:
       type: object
