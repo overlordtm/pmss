@@ -100,3 +100,18 @@ FROM (
 JOIN machines m ON unique_md5_files.machine_id = m.id
 JOIN scanned_files f ON unique_md5_files.id = f.id;
 ```
+
+## Find duplicate file submissions from same machine
+
+```sql
+SELECT path, md5, size, machine_id, COUNT(*) AS count
+FROM scanned_files
+GROUP BY path, md5, size, machine_id
+HAVING count > 1;
+
+SELECT path, md5, size, machine_id, GROUP_CONCAT(report_run_id) AS report_run_ids
+FROM scanned_files
+GROUP BY path, md5, size, machine_id
+HAVING COUNT(*) > 1;
+
+```
