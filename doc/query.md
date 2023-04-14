@@ -115,3 +115,14 @@ GROUP BY path, md5, size, machine_id
 HAVING COUNT(*) > 1;
 
 ```
+
+## Ideas for file hunting
+
+```
+SELECT m.id, m.hostname, f.id, f.path, CONV(f.mode, 10, 8) as mode, f.size, f.owner, f.group
+FROM  scanned_files_fam f JOIN machines m ON f.machine_id = m.id
+WHERE f.size > 1000 and m.hostname LIKE 'siem-%' AND f.path NOT LIKE '%wazuh%'AND f.path NOT LIKE '%splunk%' AND f.path NOT LIKE '/var/log/journal/%' AND f.path NOT LIKE '/var/ossec/%' AND ((f.mode & 1) > 0 OR ((f.mode >> 3) & 1) > 0 OR ((f.mode >> 6) & 1) > 0)
+GROUP BY f.md5
+HAVING COUNT(*) = 1
+ORDER BY m.hostname, f.size
+```
