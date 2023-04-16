@@ -25,6 +25,32 @@ func ScrapeDebianMirror(ctx context.Context, db *gorm.DB, distro, arch, componen
 	return nil
 }
 
+func ScrapeUbuntuMirror(ctx context.Context, db *gorm.DB, distro, arch, component string) error {
+
+	ubuntuMirrors := []string{
+		"http://si.archive.ubuntu.com/ubuntu/",
+		"http://de.archive.ubuntu.com/ubuntu/",
+		"http://nl.archive.ubuntu.com/ubuntu/",
+		"http://hu.archive.ubuntu.com/ubuntu/",
+		"http://at.archive.ubuntu.com/ubuntu/",
+		"http://fr.archive.ubuntu.com/ubuntu/",
+	}
+
+	scraper := debscraper.New(debscraper.WithRandomMirrors(ubuntuMirrors...), debscraper.WithDistro(distro), debscraper.WithArch(arch), debscraper.WithComponent(component), debscraper.WithOsType(datastore.OsTypeDebian))
+	if packages, err := scraper.ListPackages(ctx); err != nil {
+		return err
+	} else {
+
+		for _, pkg := range packages {
+			if err := datastore.Packages().Save(pkg)(db); err != nil {
+				continue
+			}
+		}
+
+	}
+	return nil
+}
+
 func ScrapeDebianPackage(ctx context.Context, tx *gorm.DB, pkg datastore.Package) error {
 	scraper := debscraper.New(debscraper.WithDistro(pkg.Distro), debscraper.WithArch(pkg.Architecture), debscraper.WithComponent(pkg.Component))
 

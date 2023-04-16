@@ -70,7 +70,8 @@ https://elixir.bootlin.com/linux/latest/source/include/uapi/linux/stat.h#L17
 
 ```sql
 SELECT m.id, m.hostname, f.id, f.path, CONV(f.mode, 10, 8) as mode, f.owner, f.group
-FROM scanned_files f JOIN machines m ON f.machine_id = m.id
+FROM scanned_files f 
+JOIN machines m ON f.machine_id = m.id
 WHERE (mode & 2048) > 0 OR (mode & 1024) > 0;
 ```
 
@@ -100,6 +101,96 @@ FROM (
 JOIN machines m ON unique_md5_files.machine_id = m.id
 JOIN scanned_files f ON unique_md5_files.id = f.id;
 ```
+
+
+# Select latest submission from each machine for every path
+
+```sql
+
+SELECT t1.*
+FROM scanned_files t1
+WHERE t1.created_at = (
+    SELECT MAX(t2.created_at)
+    FROM scanned_files t2
+    WHERE t2.path = t1.path AND t2.machine_id = t1.machine_id
+)
+GROUP BY t1.path, t1.machine_id, t1.created_at;
+
+---
+
+WITH latest_records AS (
+    SELECT path, machine_id, MAX(created_at) as latest_created_at
+    FROM scanned_files
+    GROUP BY path, machine_id
+)
+
+SELECT t.*
+FROM scanned_files t
+JOIN latest_records lr
+ON t.path = lr.path AND t.machine_id = lr.machine_id AND t.created_at = lr.latest_created_at;
+
+
+---
+SET autocommit=0;
+INSERT INTO scanned_files_wip SELECT t1.*
+FROM scanned_files t1
+WHERE t1.created_at = (
+    SELECT MAX(t2.created_at)
+    FROM scanned_files t2
+    WHERE t2.path = t1.path AND t2.machine_id = t1.machine_id
+)
+GROUP BY t1.path, t1.machine_id, t1.created_at;
+COMMIT;
+SET autocommit=1;
+
+```
+
+
+## Unique files by machine
+    
+```sql
+SELECT m.hostname, m.fqdn, f.path, f.size, f.mtime, CONV(f.mode, 10, 8) as mode, f.owner as gid, f.`group` as gid 
+FROM unique_files f 
+JOIN machines m ON f.machine_id = m.id 
+ORDER BY m.hostname, f.path
+```
+
+## Unqiue files over 100kB
+```sql
+SELECT `fqdn`, `path`, `size`,  CONV(`mode`, 10, 8) as mode, `mtime`, `owner`, `group`, `md5`, `sha1`, `sha256` 
+FROM `unique_files` 
+WHERE `size` > '100*1024'
+ORDER BY fqdn;
+```
+
+## Select files that exists on multiple machines on same path, but with different content
+
+```sql
+SELECT `fqdn`, `path`, `size`, CONV(`mode`, 10, 8) as mode, `mtime`, `owner`, `group`, `md5`, `sha1`, `sha256` 
+FROM unique_files 
+WHERE id IN (
+    SELECT id FROM unique_files 
+    WHERE path NOT LIKE '/run/%' 
+    AND path NOT LIKE '/var/log/journal/%' 
+    AND path NOT LIKE '/opt/splunkforwarder/%' 
+    GROUP BY path HAVING COUNT(*) > 1 
+    )
+ORDER BY fqdn
+```
+
+
+## Files that exists on multiple machines on same path, but with different permissions or owner or group
+
+```sql
+SELECT u1.fqdn as fqdn_1, u2.fqdn as fqdn_2, u1.`path`, CONV(u1.`mode`, 10, 8) as mode_1, CONV(u2.`mode`, 10, 8) as mode_2,  u1.`owner` as uid_1, u2.owner as uid_2, u1.`group` as gid_1, u2.`group` as gid_2, u1.`md5` as md5_1, u2.`md5` as md5_2 
+FROM unique_files u1
+JOIN unique_files u2
+ON u1.path = u2.path
+WHERE u1.mode != u2.mode
+OR u1.owner != u2.owner
+OR u1.`group` != u2.`group`
+```
+
 
 ## Find duplicate file submissions from same machine
 
