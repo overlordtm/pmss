@@ -18,17 +18,17 @@ const (
 type Package struct {
 	ID uint `gorm:"primarykey"`
 
-	Name     string `gorm:"uniqueIndex:package_name_version_architecture"`
+	Name     string `gorm:"uniqueIndex:uniqpkg"`
 	Filename string
 	MD5Sum   *string `gorm:"default:null"`
 	SHA256   *string `gorm:"default:null"`
-	Version  string  `gorm:"uniqueIndex:package_name_version_architecture"`
+	Version  string  `gorm:"uniqueIndex:uniqpkg"`
 	Size     uint64
 
-	Architecture string `gorm:"uniqueIndex:package_name_version_architecture"`
-	Distro       string
-	Component    string
-	OsType       OsType
+	Architecture string `gorm:"uniqueIndex:uniqpkg"`
+	Distro       string `gorm:"uniqueIndex:uniqpkg"`
+	Component    string `gorm:"uniqueIndex:uniqpkg"`
+	OsType       OsType `gorm:"uniqueIndex:uniqpkg"`
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
