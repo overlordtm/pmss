@@ -45,3 +45,7 @@ func (c *HTTPClient) authorizeReq() apiclient.RequestEditorFn {
 func (c *HTTPClient) SubmitFiles(ctx context.Context, files apiclient.NewReportRequest) (*apiclient.SubmitReportResponse, error) {
 	return c.client.SubmitReportWithResponse(ctx, files, c.reqHandlers...)
 }
+
+func (c *HTTPClient) SubmitHashes(ctx context.Context, hashes []apiclient.HashQuery) (*apiclient.QueryByHashBatchResponse, error) {
+	return c.client.QueryByHashBatchWithResponse(ctx, hashes, c.reqHandlers...)
+}

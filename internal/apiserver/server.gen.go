@@ -14,6 +14,9 @@ import (
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 
+	// (POST /hash)
+	QueryByHashBatch(c *gin.Context)
+
 	// (GET /hash/{hash})
 	QueryByHash(c *gin.Context, hash string)
 
@@ -29,6 +32,16 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(c *gin.Context)
+
+// QueryByHashBatch operation middleware
+func (siw *ServerInterfaceWrapper) QueryByHashBatch(c *gin.Context) {
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		middleware(c)
+	}
+
+	siw.Handler.QueryByHashBatch(c)
+}
 
 // QueryByHash operation middleware
 func (siw *ServerInterfaceWrapper) QueryByHash(c *gin.Context) {
@@ -89,6 +102,8 @@ func RegisterHandlersWithOptions(router *gin.Engine, si ServerInterface, options
 		HandlerMiddlewares: options.Middlewares,
 		ErrorHandler:       errorHandler,
 	}
+
+	router.POST(options.BaseURL+"/hash", wrapper.QueryByHashBatch)
 
 	router.GET(options.BaseURL+"/hash/:hash", wrapper.QueryByHash)
 
