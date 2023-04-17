@@ -217,3 +217,19 @@ GROUP BY f.md5
 HAVING COUNT(*) = 1
 ORDER BY m.hostname, f.size
 ```
+
+
+```sql
+
+INSERT INTO known_files (path, sha1, sha256, md5, size, status)
+SELECT scanned_files_wip.path, scanned_files_wip.sha1, scanned_files_wip.sha256, scanned_files_wip.md5, scanned_files_wip.size, 100 as status
+FROM (
+    SELECT sha1
+    FROM scanned_files_wip
+    GROUP BY sha1
+    HAVING COUNT(*) >= 3
+) AS subquery
+JOIN scanned_files_wip ON subquery.sha1 = scanned_files_wip.sha1;
+
+
+```
