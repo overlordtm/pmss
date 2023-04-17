@@ -21,7 +21,7 @@ type Pmss struct {
 
 type Option func(*Pmss)
 
-type HashSearchResult datastore.KnownFile
+type HashSearchResult apitypes.KnownFile
 
 func WithDbUrl(dbUrl string) Option {
 	return func(p *Pmss) {
@@ -54,26 +54,40 @@ func (p *Pmss) FindByHash(hash string) (*HashSearchResult, error) {
 	if err := datastore.KnownFiles().FindByHash(hash, knownFile)(p.db); err != nil {
 		return nil, err
 	}
-	return (*HashSearchResult)(knownFile), nil
+	return &HashSearchResult{
+		KnownPath: knownFile.Path,
+		Status:    knownFile.Status,
+	}, nil
 }
 
 func (p *Pmss) FindByHashBatch(hash []apitypes.HashQuery) ([]HashSearchResult, error) {
-	knownFile := new(datastore.KnownFile)
+
 	var knownFiles []HashSearchResult
 
 	for _, item := range hash {
+		knownFile := new(datastore.KnownFile)
+
+		pth := item.Path
 
 		if err := datastore.KnownFiles().FindByHash(item.Hash, knownFile)(p.db); err != nil {
 			switch err {
 			case gorm.ErrRecordNotFound:
-				pth := item.Path
-				knownFiles = append(knownFiles, HashSearchResult{Path: &pth, Status: datastore.FileStatusUnknown})
+
+				knownFiles = append(knownFiles, HashSearchResult{Path: pth, Status: datastore.FileStatusUnknown})
 			default:
 				return nil, err
 			}
 
 		} else {
-			knownFiles = append(knownFiles, *(*HashSearchResult)(knownFile))
+			knownFiles = append(knownFiles, HashSearchResult{
+				Path:      pth,
+				Size:      knownFile.Size,
+				KnownPath: knownFile.Path,
+				Status:    knownFile.Status,
+				Md5:       knownFile.MD5,
+				Sha1:      knownFile.SHA1,
+				Sha256:    knownFile.SHA256,
+			})
 		}
 	}
 

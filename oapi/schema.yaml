@@ -213,6 +213,9 @@ components:
 
     KnownFile:
       type: object
+      required:
+        - status
+        - path
       properties:
         status:
           type: integer
@@ -220,6 +223,8 @@ components:
           x-go-type-import:
             path: github.com/overlordtm/pmss/pkg/datastore
         path:
+          type: string
+        knownPath:
           type: string
         md5:
           type: string

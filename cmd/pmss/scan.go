@@ -158,7 +158,13 @@ func printFileStatus(file apiclient.ReportFile) {
 }
 
 func printKnownFileStatus(file apiclient.KnownFile) {
-	fmt.Printf("%s\t%s\n", strings.ToUpper(file.Status.String()), *file.Path)
+
+	knownPath := ""
+	if file.KnownPath != nil {
+		knownPath = *file.KnownPath
+	}
+
+	fmt.Printf("%s\t%s\t%s\n", strings.ToUpper(file.Status.String()), file.Path, knownPath)
 }
 
 func init() {

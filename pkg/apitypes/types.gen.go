@@ -36,12 +36,13 @@ type HashQuery struct {
 
 // KnownFile defines model for KnownFile.
 type KnownFile struct {
-	Md5    *string               `json:"md5,omitempty"`
-	Path   *string               `json:"path,omitempty"`
-	Sha1   *string               `json:"sha1,omitempty"`
-	Sha256 *string               `json:"sha256,omitempty"`
-	Size   *int64                `json:"size,omitempty"`
-	Status *datastore.FileStatus `json:"status,omitempty"`
+	KnownPath *string              `json:"knownPath,omitempty"`
+	Md5       *string              `json:"md5,omitempty"`
+	Path      string               `json:"path"`
+	Sha1      *string              `json:"sha1,omitempty"`
+	Sha256    *string              `json:"sha256,omitempty"`
+	Size      *int64               `json:"size,omitempty"`
+	Status    datastore.FileStatus `json:"status"`
 }
 
 // NewReportRequest defines model for NewReportRequest.
