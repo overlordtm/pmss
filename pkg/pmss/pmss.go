@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/overlordtm/pmss/pkg/apitypes"
 	"github.com/overlordtm/pmss/pkg/datastore"
 	"github.com/overlordtm/pmss/pkg/pkgscraper"
 	"gorm.io/gorm"
@@ -20,9 +21,7 @@ type Pmss struct {
 
 type Option func(*Pmss)
 
-type HashSearchResult struct {
-	File *datastore.KnownFile
-}
+type HashSearchResult datastore.KnownFile
 
 func WithDbUrl(dbUrl string) Option {
 	return func(p *Pmss) {
@@ -55,9 +54,30 @@ func (p *Pmss) FindByHash(hash string) (*HashSearchResult, error) {
 	if err := datastore.KnownFiles().FindByHash(hash, knownFile)(p.db); err != nil {
 		return nil, err
 	}
-	return &HashSearchResult{
-		File: knownFile,
-	}, nil
+	return (*HashSearchResult)(knownFile), nil
+}
+
+func (p *Pmss) FindByHashBatch(hash []apitypes.HashQuery) ([]HashSearchResult, error) {
+	knownFile := new(datastore.KnownFile)
+	var knownFiles []HashSearchResult
+
+	for _, item := range hash {
+
+		if err := datastore.KnownFiles().FindByHash(item.Hash, knownFile)(p.db); err != nil {
+			switch err {
+			case gorm.ErrRecordNotFound:
+				pth := item.Path
+				knownFiles = append(knownFiles, HashSearchResult{Path: &pth, Status: datastore.FileStatusUnknown})
+			default:
+				return nil, err
+			}
+
+		} else {
+			knownFiles = append(knownFiles, *(*HashSearchResult)(knownFile))
+		}
+	}
+
+	return knownFiles, nil
 }
 
 func (p *Pmss) FindMachineByHostname(machineHostname string, machine *datastore.Machine) (bool, error) {

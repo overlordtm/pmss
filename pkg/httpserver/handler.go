@@ -33,32 +33,39 @@ func (h *handler) QueryByHash(c *gin.Context, hash string) {
 	if err != nil {
 		switch err {
 		case gorm.ErrRecordNotFound:
-			c.JSON(http.StatusNotFound, apitypes.HashQueryResponse{
-				Status: datastore.FileStatusUnknown,
-			})
+			c.Status(http.StatusNotFound)
 			return
 		case hashtype.ErrUnknown:
-			c.Error(fmt.Errorf("error: %s %s %d", err.Error(), hash, len(hash)))
+			c.Error(fmt.Errorf("QueryByHash error: %s %s %d", err.Error(), hash, len(hash)))
 			c.Status(http.StatusBadRequest)
 			return
 		default:
-			c.Error(fmt.Errorf("error: %s %s", err.Error(), hash))
+			c.Error(fmt.Errorf("QueryByHash error: %s %s", err.Error(), hash))
 			c.Status(http.StatusInternalServerError)
 			return
 		}
 	}
 
-	res := apitypes.HashQueryResponse{
-		Status: result.File.Status,
-		File: &apitypes.KnownFile{
-			Md5:    result.File.MD5,
-			Sha1:   result.File.SHA1,
-			Sha256: result.File.SHA256,
-			Size:   result.File.Size,
-		},
+	c.JSON(http.StatusOK, result)
+}
+
+func (h *handler) QueryByHashBatch(c *gin.Context) {
+	var req []apitypes.HashQuery
+	if err := c.ShouldBindJSON(&req); err != nil {
+		//Should bind json send response automatically
+		c.Error(fmt.Errorf("ShouldBindJSON error: %s", err.Error()))
+		return
 	}
 
-	c.JSON(http.StatusOK, res)
+	result, err := h.Pmss.FindByHashBatch(req)
+
+	if err != nil {
+		c.Error(fmt.Errorf("QueryByHashBatch error: %s", err.Error()))
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
 }
 
 func (h *handler) SubmitReport(c *gin.Context) {

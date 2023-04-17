@@ -38,18 +38,20 @@ type File struct {
 	Size     int64   `json:"size"`
 }
 
-// HashQueryResponse defines model for HashQueryResponse.
-type HashQueryResponse struct {
-	File   *KnownFile           `json:"file,omitempty"`
-	Status datastore.FileStatus `json:"status"`
+// HashQuery defines model for HashQuery.
+type HashQuery struct {
+	Hash string `json:"hash"`
+	Path string `json:"path"`
 }
 
 // KnownFile defines model for KnownFile.
 type KnownFile struct {
-	Md5    *string `json:"md5,omitempty"`
-	Sha1   *string `json:"sha1,omitempty"`
-	Sha256 *string `json:"sha256,omitempty"`
-	Size   *int64  `json:"size,omitempty"`
+	Md5    *string               `json:"md5,omitempty"`
+	Path   *string               `json:"path,omitempty"`
+	Sha1   *string               `json:"sha1,omitempty"`
+	Sha256 *string               `json:"sha256,omitempty"`
+	Size   *int64                `json:"size,omitempty"`
+	Status *datastore.FileStatus `json:"status,omitempty"`
 }
 
 // NewReportRequest defines model for NewReportRequest.
@@ -72,6 +74,12 @@ type ReportFile struct {
 	Path   string               `json:"path"`
 	Status datastore.FileStatus `json:"status"`
 }
+
+// QueryByHashBatchJSONBody defines parameters for QueryByHashBatch.
+type QueryByHashBatchJSONBody = []HashQuery
+
+// QueryByHashBatchJSONRequestBody defines body for QueryByHashBatch for application/json ContentType.
+type QueryByHashBatchJSONRequestBody = QueryByHashBatchJSONBody
 
 // SubmitReportJSONRequestBody defines body for SubmitReport for application/json ContentType.
 type SubmitReportJSONRequestBody = NewReportRequest
@@ -149,6 +157,11 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 
 // The interface specification for the client above.
 type ClientInterface interface {
+	// QueryByHashBatch request with any body
+	QueryByHashBatchWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	QueryByHashBatch(ctx context.Context, body QueryByHashBatchJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// QueryByHash request
 	QueryByHash(ctx context.Context, hash string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -156,6 +169,30 @@ type ClientInterface interface {
 	SubmitReportWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	SubmitReport(ctx context.Context, body SubmitReportJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+}
+
+func (c *Client) QueryByHashBatchWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewQueryByHashBatchRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) QueryByHashBatch(ctx context.Context, body QueryByHashBatchJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewQueryByHashBatchRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
 }
 
 func (c *Client) QueryByHash(ctx context.Context, hash string, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -192,6 +229,46 @@ func (c *Client) SubmitReport(ctx context.Context, body SubmitReportJSONRequestB
 		return nil, err
 	}
 	return c.Client.Do(req)
+}
+
+// NewQueryByHashBatchRequest calls the generic QueryByHashBatch builder with application/json body
+func NewQueryByHashBatchRequest(server string, body QueryByHashBatchJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewQueryByHashBatchRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewQueryByHashBatchRequestWithBody generates requests for QueryByHashBatch with any type of body
+func NewQueryByHashBatchRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/hash")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
 }
 
 // NewQueryByHashRequest generates requests for QueryByHash
@@ -311,6 +388,11 @@ func WithBaseURL(baseURL string) ClientOption {
 
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
+	// QueryByHashBatch request with any body
+	QueryByHashBatchWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*QueryByHashBatchResponse, error)
+
+	QueryByHashBatchWithResponse(ctx context.Context, body QueryByHashBatchJSONRequestBody, reqEditors ...RequestEditorFn) (*QueryByHashBatchResponse, error)
+
 	// QueryByHash request
 	QueryByHashWithResponse(ctx context.Context, hash string, reqEditors ...RequestEditorFn) (*QueryByHashResponse, error)
 
@@ -320,10 +402,33 @@ type ClientWithResponsesInterface interface {
 	SubmitReportWithResponse(ctx context.Context, body SubmitReportJSONRequestBody, reqEditors ...RequestEditorFn) (*SubmitReportResponse, error)
 }
 
+type QueryByHashBatchResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]KnownFile
+	JSONDefault  *Error
+}
+
+// Status returns HTTPResponse.Status
+func (r QueryByHashBatchResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r QueryByHashBatchResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type QueryByHashResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *HashQueryResponse
+	JSON200      *KnownFile
 	JSONDefault  *Error
 }
 
@@ -366,6 +471,23 @@ func (r SubmitReportResponse) StatusCode() int {
 	return 0
 }
 
+// QueryByHashBatchWithBodyWithResponse request with arbitrary body returning *QueryByHashBatchResponse
+func (c *ClientWithResponses) QueryByHashBatchWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*QueryByHashBatchResponse, error) {
+	rsp, err := c.QueryByHashBatchWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseQueryByHashBatchResponse(rsp)
+}
+
+func (c *ClientWithResponses) QueryByHashBatchWithResponse(ctx context.Context, body QueryByHashBatchJSONRequestBody, reqEditors ...RequestEditorFn) (*QueryByHashBatchResponse, error) {
+	rsp, err := c.QueryByHashBatch(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseQueryByHashBatchResponse(rsp)
+}
+
 // QueryByHashWithResponse request returning *QueryByHashResponse
 func (c *ClientWithResponses) QueryByHashWithResponse(ctx context.Context, hash string, reqEditors ...RequestEditorFn) (*QueryByHashResponse, error) {
 	rsp, err := c.QueryByHash(ctx, hash, reqEditors...)
@@ -392,6 +514,39 @@ func (c *ClientWithResponses) SubmitReportWithResponse(ctx context.Context, body
 	return ParseSubmitReportResponse(rsp)
 }
 
+// ParseQueryByHashBatchResponse parses an HTTP response from a QueryByHashBatchWithResponse call
+func ParseQueryByHashBatchResponse(rsp *http.Response) (*QueryByHashBatchResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &QueryByHashBatchResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []KnownFile
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseQueryByHashResponse parses an HTTP response from a QueryByHashWithResponse call
 func ParseQueryByHashResponse(rsp *http.Response) (*QueryByHashResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -407,7 +562,7 @@ func ParseQueryByHashResponse(rsp *http.Response) (*QueryByHashResponse, error) 
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest HashQueryResponse
+		var dest KnownFile
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

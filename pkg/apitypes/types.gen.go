@@ -28,18 +28,20 @@ type File struct {
 	Size     int64   `json:"size"`
 }
 
-// HashQueryResponse defines model for HashQueryResponse.
-type HashQueryResponse struct {
-	File   *KnownFile           `json:"file,omitempty"`
-	Status datastore.FileStatus `json:"status"`
+// HashQuery defines model for HashQuery.
+type HashQuery struct {
+	Hash string `json:"hash"`
+	Path string `json:"path"`
 }
 
 // KnownFile defines model for KnownFile.
 type KnownFile struct {
-	Md5    *string `json:"md5,omitempty"`
-	Sha1   *string `json:"sha1,omitempty"`
-	Sha256 *string `json:"sha256,omitempty"`
-	Size   *int64  `json:"size,omitempty"`
+	Md5    *string               `json:"md5,omitempty"`
+	Path   *string               `json:"path,omitempty"`
+	Sha1   *string               `json:"sha1,omitempty"`
+	Sha256 *string               `json:"sha256,omitempty"`
+	Size   *int64                `json:"size,omitempty"`
+	Status *datastore.FileStatus `json:"status,omitempty"`
 }
 
 // NewReportRequest defines model for NewReportRequest.
@@ -62,6 +64,12 @@ type ReportFile struct {
 	Path   string               `json:"path"`
 	Status datastore.FileStatus `json:"status"`
 }
+
+// QueryByHashBatchJSONBody defines parameters for QueryByHashBatch.
+type QueryByHashBatchJSONBody = []HashQuery
+
+// QueryByHashBatchJSONRequestBody defines body for QueryByHashBatch for application/json ContentType.
+type QueryByHashBatchJSONRequestBody = QueryByHashBatchJSONBody
 
 // SubmitReportJSONRequestBody defines body for SubmitReport for application/json ContentType.
 type SubmitReportJSONRequestBody = NewReportRequest

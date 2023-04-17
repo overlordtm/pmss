@@ -14,6 +14,37 @@ info:
 servers:
   - url: https://pmss.ls.rtfm.so/api/v1
 paths:
+  /hash:
+    post:
+      description: Query by hash (batch)
+      operationId: queryByHashBatch
+      requestBody:
+        description: Hashes to query
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/HashQuery'
+
+      responses:
+        '200':
+          description: Respons with report id
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/KnownFile'
+
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /hash/{hash}:
     get:
       description: Query by hash
@@ -31,7 +62,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HashQueryResponse'
+                $ref: '#/components/schemas/KnownFile'
+        '404':
+          description: File not found
         default:
           description: unexpected error
           content:
@@ -75,6 +108,17 @@ components:
       bearerFormat: JWT
 
   schemas:
+
+    HashQuery:
+      type: object
+      required:
+        - hash
+        - path
+      properties:
+        hash:
+          type: string
+        path:
+          type: string
 
     NewReportRequest:
       type: object
@@ -167,22 +211,16 @@ components:
         error:
           type: string
 
-    HashQueryResponse:
+    KnownFile:
       type: object
-      required:
-        - status
       properties:
         status:
           type: integer
           x-go-type: datastore.FileStatus
           x-go-type-import:
             path: github.com/overlordtm/pmss/pkg/datastore
-        file:
-          $ref: '#/components/schemas/KnownFile'
-
-    KnownFile:
-      type: object
-      properties:
+        path:
+          type: string
         md5:
           type: string
         sha1:
