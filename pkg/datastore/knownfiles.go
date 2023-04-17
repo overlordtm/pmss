@@ -14,6 +14,7 @@ type FileStatus byte
 const (
 	FileStatusUnknown   FileStatus = 0
 	FileStatusSafe      FileStatus = 1
+	FileStatusCommon    FileStatus = 100
 	FileStatusMalicious FileStatus = 255
 )
 
@@ -25,6 +26,8 @@ func (f FileStatus) String() string {
 		return "safe"
 	case FileStatusMalicious:
 		return "malicious"
+	case FileStatusCommon:
+		return "common"
 	default:
 		return "unknown"
 	}
