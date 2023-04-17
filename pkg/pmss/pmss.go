@@ -131,26 +131,20 @@ func (p *Pmss) ScanFile(scannedFile *datastore.ScannedFile) (*datastore.KnownFil
 
 func (p *Pmss) UpdatePackages(ctx context.Context) (err error) {
 
-	if err1 := p.db.Transaction(func(tx *gorm.DB) error {
-		return pkgscraper.ScrapeDebianMirror(ctx, p.db, "bullseye", "amd64", "main")
-	}); err1 != nil {
-		err = errors.Join(err, err1)
+	releases := []string{"bullseye", "bullseye-updates", "bullseye-security", "bullseye-backports"}
+	components := []string{"main", "non-free", "contrib"}
+	for _, release := range releases {
+		for _, component := range components {
+			if err1 := p.db.Transaction(func(tx *gorm.DB) error {
+				return pkgscraper.ScrapeDebianMirror(ctx, p.db, release, "amd64", component)
+			}); err1 != nil {
+				err = errors.Join(err, err1)
+			}
+		}
 	}
 
-	if err1 := p.db.Transaction(func(tx *gorm.DB) error {
-		return pkgscraper.ScrapeDebianMirror(ctx, p.db, "bullseye", "amd64", "non-free")
-	}); err1 != nil {
-		err = errors.Join(err, err1)
-	}
-
-	if err1 := p.db.Transaction(func(tx *gorm.DB) error {
-		return pkgscraper.ScrapeDebianMirror(ctx, p.db, "bullseye", "amd64", "contrib")
-	}); err1 != nil {
-		err = errors.Join(err, err1)
-	}
-
-	releases := []string{"focal", "focal-updates", "focal-security", "focal-backports", "jammy", "jammy-updates", "jammy-security", "jammy-backports"}
-	components := []string{"main", "multiverse", "restricted", "universe"}
+	releases = []string{"focal", "focal-updates", "focal-security", "focal-backports", "jammy", "jammy-updates", "jammy-security", "jammy-backports"}
+	components = []string{"main", "multiverse", "restricted", "universe"}
 
 	for _, release := range releases {
 		for _, component := range components {
